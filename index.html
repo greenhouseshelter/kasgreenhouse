@@ -54,7 +54,6 @@
                 <ul class="p-4 space-y-2">
                     <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-chart-pie mr-2"></i> Dashboard</button></li>
                     <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-list mr-2"></i> Transaksi</button></li>
-                    <li id="menuExport" class="hidden"><button onclick="showView('exportExcel')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-teal-600"><i class="fas fa-file-excel mr-2"></i> Export Excel</button></li>
                     <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-users-cog mr-2"></i> Kelola User</button></li>
                     <li id="menuOptions" class="hidden"><button onclick="showView('adminOptions')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs mr-2"></i> Kelola Opsi</button></li>
                 </ul>
@@ -64,7 +63,6 @@
             <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around z-50 overflow-x-auto">
                 <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dash</button>
                 <button onclick="showView('transactions')" id="mMenuTransaksi" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-list block text-lg mb-1"></i>Transaksi</button>
-                <button onclick="showView('exportExcel')" id="mMenuExport" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-teal-600"><i class="fas fa-file-excel block text-lg mb-1"></i>Export</button>
                 <!-- Menu Khusus Admin di HP (Disembunyikan default) -->
                 <button onclick="showView('adminUsers')" id="mMenuUsers" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-users block text-lg mb-1"></i>User</button>
                 <button onclick="showView('adminOptions')" id="mMenuOptions" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs block text-lg mb-1"></i>Opsi</button>
@@ -104,11 +102,33 @@
                 </div>
                 
                 <!-- TRANSACTIONS VIEW -->
+
+                <!-- TRANSACTIONS VIEW -->
                 <div id="viewTransactions" class="hidden">
-                    <div class="flex justify-between items-center mb-6">
+                    <div class="flex justify-between items-center mb-4">
                         <h2 class="text-2xl font-bold">Data Transaksi</h2>
                         <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Input</button>
                     </div>
+
+                    <!-- KARTU EXPORT EXCEL (DITEMPELKAN DI SINI) -->
+                    <div class="bg-white p-4 rounded-lg shadow mb-6 border-l-4 border-teal-500">
+                        <h3 class="font-bold text-sm text-gray-700 mb-3"><i class="fas fa-file-excel text-teal-500 mr-2"></i>Export Laporan Excel</h3>
+                        <div class="flex flex-wrap gap-3 items-end">
+                            <div class="flex-1 min-w-[130px]">
+                                <label class="block text-xs font-medium mb-1 text-gray-500">Dari Tanggal</label>
+                                <input type="date" id="expStartDate" class="w-full border rounded p-2 text-sm" required>
+                            </div>
+                            <div class="flex-1 min-w-[130px]">
+                                <label class="block text-xs font-medium mb-1 text-gray-500">Sampai Tanggal</label>
+                                <input type="date" id="expEndDate" class="w-full border rounded p-2 text-sm" required>
+                            </div>
+                            <button onclick="downloadExcel()" id="btnExport" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 font-bold text-sm whitespace-nowrap">
+                                <i class="fas fa-download mr-1"></i> Unduh
+                            </button>
+                        </div>
+                    </div>
+                    <!-- AKHIR KARTU EXPORT -->
+
                     <div class="bg-white rounded-lg shadow overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -163,27 +183,6 @@
                             </div>
                             <!-- GANTI UL MENJADI DIV -->
                             <div id="listAkun" class="flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- EXPORT EXCEL VIEW -->
-                <div id="viewExportExcel" class="hidden">
-                    <h2 class="text-2xl font-bold mb-6">Export Laporan Excel</h2>
-                    <div class="bg-white p-6 rounded-lg shadow mb-6">
-                        <p class="text-gray-600 mb-4 text-sm">Pilih rentang tanggal untuk mengunduh laporan transaksi dalam format Excel (.xlsx).</p>
-                        <div class="flex flex-wrap gap-4 items-end">
-                            <div class="flex-1 min-w-[150px]">
-                                <label class="block text-sm font-medium mb-1">Dari Tanggal</label>
-                                <input type="date" id="expStartDate" class="w-full border rounded p-2" required>
-                            </div>
-                            <div class="flex-1 min-w-[150px]">
-                                <label class="block text-sm font-medium mb-1">Sampai Tanggal</label>
-                                <input type="date" id="expEndDate" class="w-full border rounded p-2" required>
-                            </div>
-                            <button onclick="downloadExcel()" id="btnExport" class="bg-green-600 text-white px-6 py-2 rounded-lg shadow hover:bg-green-700 font-bold">
-                                <i class="fas fa-download mr-2"></i>Unduh Excel
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -317,27 +316,18 @@
             document.getElementById('menuTransaksi').classList.remove('hidden');
             document.getElementById('mMenuTransaksi').classList.remove('hidden');
         }
-
+        
         const isAdmin = currentUser.role === 'ADMIN';
         const isFinance = currentUser.role === 'FINANCE';
         const isPengelola = currentUser.role === 'PENGELOLA';
 
-        // Menu Transaksi (Hanya Pengelola & Admin)
-        if (isPengelola || isAdmin) {
+        // Menu Transaksi (Bisa diakses Pengelola, Finance, Admin)
+        if (isPengelola || isAdmin || isFinance) {
             document.getElementById('menuTransaksi').classList.remove('hidden');
             document.getElementById('mMenuTransaksi').classList.remove('hidden');
         } else {
             document.getElementById('menuTransaksi').classList.add('hidden');
             document.getElementById('mMenuTransaksi').classList.add('hidden');
-        }
-
-        // Menu Export (Admin & Finance)
-        if (isAdmin || isFinance) {
-            document.getElementById('menuExport').classList.remove('hidden');
-            document.getElementById('mMenuExport').classList.remove('hidden');
-        } else {
-            document.getElementById('menuExport').classList.add('hidden');
-            document.getElementById('mMenuExport').classList.add('hidden');
         }
 
         // Menu Kelola User (Hanya Admin)
@@ -357,7 +347,7 @@
             document.getElementById('menuOptions').classList.add('hidden');
             document.getElementById('mMenuOptions').classList.add('hidden');
         }
-        
+
         loadOptions();
         populateFilters();
         showView('dashboard'); 
@@ -366,7 +356,7 @@
 
     // --- NAVIGASI ---
     function showView(viewName) {
-        ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions', 'viewExportExcel'].forEach(id => {
+        ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
         });
         document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)).classList.remove('hidden');
