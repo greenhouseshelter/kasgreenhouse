@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kas Green House</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-slate-900">
+        <div class="bg-white p-8 rounded-xl shadow-2xl text-center w-96">
+            <h1 class="text-3xl font-bold mb-2 text-slate-800"><i class="fas fa-wallet text-yellow-500"></i> Kas Greenhouse</h1>
+            <p class="text-gray-500 mb-6">Pencatatan Keuangan Project</p>
+            <div id="g_id_onload" data-client_id="778025623736-duhe9t7dpublfreu1sgt5jgkr47d27af.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+        </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div id="waitingScreen" class="hidden min-h-screen flex items-center justify-center bg-yellow-50">
+        <div class="bg-white p-8 rounded-xl shadow-xl text-center w-96 border-t-4 border-yellow-500">
+            <i class="fas fa-clock text-5xl text-yellow-500 mb-4"></i>
+            <h2 class="text-2xl font-bold mb-2">Menunggu Persetujuan</h2>
+            <p class="text-gray-600">Akun Anda sedang dalam antrian. Admin akan menyetujui peran Anda segera.</p>
+            <button onclick="signOut()" class="mt-6 text-red-500 hover:underline text-sm">Keluar</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-40">
+            <h1 class="text-xl font-bold"><i class="fas fa-wallet text-yellow-400"></i> Kas Greenhouse</h1>
+            <div class="flex items-center gap-4">
+                <span id="userInfo" class="text-sm hidden md:block"></span>
+                <button onclick="signOut()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">Keluar</button>
+            </div>
+        </nav>
+
+        <div class="flex flex-1">
+            <!-- Sidebar Desktop -->
+            <aside class="w-64 bg-white shadow-lg hidden md:block border-r">
+                <div class="p-4 border-b">
+                    <p class="text-xs text-gray-500">Login sebagai:</p>
+                    <p id="userRoleBadge" class="font-bold text-yellow-600"></p>
+                </div>
+                <ul class="p-4 space-y-2">
+                    <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-chart-pie mr-2"></i> Dashboard</button></li>
+                    <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-list mr-2"></i> Transaksi</button></li>
+                    <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-users-cog mr-2"></i> Kelola User</button></li>
+                    <li id="menuOptions" class="hidden"><button onclick="showView('adminOptions')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs mr-2"></i> Kelola Opsi</button></li>
+                </ul>
+            </aside>
+            
+            <!-- Mobile Bottom Nav -->
+            <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex z-50">
+                <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dashboard</button>
+                <button onclick="showView('transactions')" id="mMenuTransaksi" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-list block text-lg mb-1"></i>Transaksi</button>
+            </div>
+
+            <!-- Main Content -->
+            <main class="flex-1 p-6 overflow-y-auto pb-20 md:pb-6">
+                
+                <!-- DASHBOARD VIEW -->
+                <div id="viewDashboard">
+                    <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+                        <h2 class="text-2xl font-bold">Dashboard</h2>
+                        <div class="flex gap-2 items-center flex-wrap">
+                            <button onclick="setDashView('bulanan')" id="btnBulanan" class="px-4 py-2 rounded bg-blue-600 text-white text-sm font-bold">Bulanan</button>
+                            <button onclick="setDashView('tahunan')" id="btnTahunan" class="px-4 py-2 rounded bg-gray-200 text-sm font-bold">Tahunan</button>
+                            
+                            <select id="filterBulan" class="border rounded p-2 text-sm" onchange="loadDashboard()"></select>
+                            <select id="filterTahun" class="border rounded p-2 text-sm" onchange="loadDashboard()"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" id="summaryCards"></div>
+                    
+                    <!-- Charts Bulanan -->
+                    <div id="chartsBulanan" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartMasukProject"></canvas></div>
+                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartKeluarProject"></canvas></div>
+                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartMasukAkun"></canvas></div>
+                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartKeluarAkun"></canvas></div>
+                    </div>
+
+                    <!-- Charts Tahunan -->
+                    <div id="chartsTahunan" class="hidden">
+                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartTahunan"></canvas></div>
+                    </div>
+                </div>
+                
+                <!-- TRANSACTIONS VIEW -->
+                <div id="viewTransactions" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Data Transaksi</h2>
+                        <button onclick="openModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Input</button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-200 text-sm text-gray-700">
+                                    <th class="p-3 border">Tanggal</th>
+                                    <th class="p-3 border">Project</th>
+                                    <th class="p-3 border">Uraian</th>
+                                    <th class="p-3 border text-right">Masuk</th>
+                                    <th class="p-3 border text-right">Keluar</th>
+                                    <th class="p-3 border">Akun</th>
+                                    <th class="p-3 border">Bukti</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ADMIN USERS VIEW -->
+                <div id="viewAdminUsers" class="hidden">
+                    <h2 class="text-2xl font-bold mb-6">Kelola User & Role</h2>
+                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
+                        <table class="w-full text-left">
+                            <thead><tr class="bg-gray-200"><th class="p-2 border">Email</th><th class="p-2 border">Nama</th><th class="p-2 border">Role Saat Ini</th><th class="p-2 border">Aksi</th></tr></thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ADMIN OPTIONS VIEW -->
+                 <div id="viewAdminOptions" class="hidden">
+                    <h2 class="text-2xl font-bold mb-6">Kelola Opsi (Project & Akun)</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- Kolom Kiri: Project -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="font-bold mb-4">Jenis Project</h3>
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="newProject" class="border rounded p-2 flex-1" placeholder="Tambah project baru">
+                                <button onclick="addOption('jenisProject')" class="bg-green-500 text-white px-4 rounded hover:bg-green-600">Tambah</button>
+                            </div>
+                            <!-- GANTI UL MENJADI DIV -->
+                            <div id="listProject" class="flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Kolom Kanan: Akun -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="font-bold mb-4">Akun</h3>
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="newAkun" class="border rounded p-2 flex-1" placeholder="Tambah akun baru">
+                                <button onclick="addOption('akun')" class="bg-green-500 text-white px-4 rounded hover:bg-green-600">Tambah</button>
+                            </div>
+                            <!-- GANTI UL MENJADI DIV -->
+                            <div id="listAkun" class="flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL INPUT TRANSAKSI -->
+    <div id="modalTransaksi" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">Input Transaksi</h3>
+                    <button onclick="closeModal()" class="text-gray-500 hover:text-black text-xl"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="formTransaksi" onsubmit="submitTransaksi(event)">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Tanggal</label>
+                            <input type="date" id="inpTanggal" class="w-full border rounded p-2" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Jenis Project</label>
+                            <select id="inpProject" class="w-full border rounded p-2" required></select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-1">Uraian</label>
+                        <input type="text" id="inpUraian" class="w-full border rounded p-2" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Masuk (Rp)</label>
+                            <input type="number" id="inpMasuk" class="w-full border rounded p-2" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Keluar (Rp)</label>
+                            <input type="number" id="inpKeluar" class="w-full border rounded p-2" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-1">Akun</label>
+                        <select id="inpAkun" class="w-full border rounded p-2" required></select>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium mb-1">Bukti Foto <span id="fotoKet" class="text-gray-400 text-xs">(Opsional untuk Masuk)</span></label>
+                        <input type="file" id="inpFoto" accept="image/*" class="w-full border rounded p-2 bg-gray-50 text-sm">
+                    </div>
+                    <button type="submit" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Simpan Transaksi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // --- KONFIGURASI WAJIB ---
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyD9_No7QwxdXLrVmrY6dkPScLVTUlKFEhiZrSGpYhqd1emXYVoqZv3osaje-pxfNMg/exec';
+    
+    let currentUser = null;
+    let appOptions = { jenisProject: [], akun: [] };
+    let chartProjectInstance = null;
+    let chartAkunInstance = null;
+    let chartMasukProjectInstance = null;
+    let chartMasukAkunInstance = null;
+    let chartTahunanInstance = null;
+    let dashViewMode = 'bulanan'; // Default view
+    
+    // --- AUTENTIKASI GOOGLE ---
+    function handleGoogleLogin(response) {
+        const responsePayload = jwt_decode(response.credential);
+        const email = responsePayload.email;
+        const name = responsePayload.name;
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'login', email: email, name: name })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') {
+                currentUser = res.data;
+                localStorage.setItem('kasUser', JSON.stringify(currentUser));
+                initApp();
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    // Simple JWT Decoder
+    function jwt_decode (token) {
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    }
+
+    function signOut() {
+        google.accounts.id.disableAutoSelect();
+        localStorage.removeItem('kasUser');
+        currentUser = null;
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('waitingScreen').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    // --- INISIALISASI APLIKASI ---
+    function initApp() {
+        if (!currentUser) return;
+        document.getElementById('loginScreen').classList.add('hidden');
+        
+        if (currentUser.role === 'WAITING') {
+            document.getElementById('waitingScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('waitingScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        
+        document.getElementById('userInfo').innerText = currentUser.name;
+        document.getElementById('userRoleBadge').innerText = currentUser.role;
+
+        if (currentUser.role === 'PENGUSAHA') {
+            document.getElementById('menuTransaksi').classList.add('hidden');
+            document.getElementById('mMenuTransaksi').classList.add('hidden');
+        } else {
+            document.getElementById('menuTransaksi').classList.remove('hidden');
+            document.getElementById('mMenuTransaksi').classList.remove('hidden');
+        }
+
+        if (currentUser.role === 'ADMIN') {
+            document.getElementById('menuUsers').classList.remove('hidden');
+            document.getElementById('menuOptions').classList.remove('hidden');
+        } else {
+            document.getElementById('menuUsers').classList.add('hidden');
+            document.getElementById('menuOptions').classList.add('hidden');
+        }
+
+        loadOptions();
+        populateFilters();
+        showView('dashboard'); 
+        setDashView('bulanan'); // Tambahkan ini
+    }
+
+    // --- NAVIGASI ---
+    function showView(viewName) {
+        ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)).classList.remove('hidden');
+
+        if (viewName === 'dashboard') loadDashboard();
+        if (viewName === 'transactions') loadTransactions();
+        if (viewName === 'adminUsers') loadUsers();
+        if (viewName === 'adminOptions') renderOptionsList();
+    }
+
+    // --- LOAD OPTIONS (DROPDOWN) ---
+    async function loadOptions() {
+        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'getOptions'}) });
+        const data = await res.json();
+        if(data.status === 'success') appOptions = data.data;
+        
+        const pSel = document.getElementById('inpProject');
+        const aSel = document.getElementById('inpAkun');
+        pSel.innerHTML = '<option value="">Pilih Project</option>';
+        aSel.innerHTML = '<option value="">Pilih Akun</option>';
+        
+        appOptions.jenisProject.forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`);
+        appOptions.akun.forEach(a => aSel.innerHTML += `<option value="${a}">${a}</option>`);
+    }
+
+    // --- FUNGSI DASHBOARD BARU ---
+
+    // 1. Set Filter & Toggle Tampilan
+    function populateFilters() {
+        const bulanSel = document.getElementById('filterBulan');
+        const tahunSel = document.getElementById('filterTahun');
+        const now = new Date();
+        
+        bulanSel.innerHTML = '';
+        for(let i=1; i<=12; i++) {
+            const sel = i === now.getMonth()+1 ? 'selected' : '';
+            bulanSel.innerHTML += `<option value="${i}" ${sel}>${new Date(0, i-1).toLocaleString('id-ID', {month:'long'})}</option>`;
+        }
+        
+        tahunSel.innerHTML = '';
+        for(let i = now.getFullYear(); i >= now.getFullYear() - 5; i--) {
+            tahunSel.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+    }
+
+    function setDashView(mode) {
+        dashViewMode = mode;
+        const btnBulanan = document.getElementById('btnBulanan');
+        const btnTahunan = document.getElementById('btnTahunan');
+        const divBulan = document.getElementById('filterBulan');
+        
+        if(mode === 'tahunan') {
+            btnBulanan.className = "px-4 py-2 rounded bg-gray-200 text-sm font-bold";
+            btnTahunan.className = "px-4 py-2 rounded bg-blue-600 text-white text-sm font-bold";
+            divBulan.classList.add('hidden'); // Sembunyikan filter bulan
+            document.getElementById('chartsBulanan').classList.add('hidden');
+            document.getElementById('chartsTahunan').classList.remove('hidden');
+        } else {
+            btnBulanan.className = "px-4 py-2 rounded bg-blue-600 text-white text-sm font-bold";
+            btnTahunan.className = "px-4 py-2 rounded bg-gray-200 text-sm font-bold";
+            divBulan.classList.remove('hidden'); // Tampilkan filter bulan
+            document.getElementById('chartsBulanan').classList.remove('hidden');
+            document.getElementById('chartsTahunan').classList.add('hidden');
+        }
+        loadDashboard();
+    }
+
+    // 2. Load Dashboard Utama
+    async function loadDashboard() {
+        const bulan = document.getElementById('filterBulan').value;
+        const tahun = document.getElementById('filterTahun').value;
+        
+        // Kirim request ke backend
+        const res = await fetch(WEB_APP_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({
+                action: 'getTransactions', 
+                bulan: dashViewMode === 'tahunan' ? 0 : bulan, // 0 = ambil semua bulan
+                tahun: tahun
+            }) 
+        });
+        const data = await res.json();
+        
+        if(data.status !== 'success') return;
+        const trans = data.data;
+
+        let totalMasuk = 0, totalKeluar = 0;
+        trans.forEach(t => {
+            totalMasuk += Number(t.Masuk) || 0;
+            totalKeluar += Number(t.Keluar) || 0;
+        });
+
+        // Render Summary Cards
+        document.getElementById('summaryCards').innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                <h3 class="text-gray-500 text-sm">Total Masuk</h3>
+                <p class="text-2xl font-bold text-green-600">Rp ${totalMasuk.toLocaleString('id-ID')}</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow border-l-4 border-red-500">
+                <h3 class="text-gray-500 text-sm">Total Keluar</h3>
+                <p class="text-2xl font-bold text-red-600">Rp ${totalKeluar.toLocaleString('id-ID')}</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+                <h3 class="text-gray-500 text-sm">Saldo</h3>
+                <p class="text-2xl font-bold text-blue-600">Rp ${(totalMasuk - totalKeluar).toLocaleString('id-ID')}</p>
+            </div>
+        `;
+
+        // Render Charts berdasarkan mode
+        if(dashViewMode === 'tahunan') {
+            renderChartTahunan(trans, tahun);
+        } else {
+            renderChartsBulanan(trans);
+        }
+    }
+
+    // 3. Render Chart Bulanan (Pemasukan & Pengeluaran per Project/Akun)
+    function renderChartsBulanan(trans) {
+        const masukProjectMap = {}, keluarProjectMap = {};
+        const masukAkunMap = {}, keluarAkunMap = {};
+
+        trans.forEach(t => {
+            const masuk = Number(t.Masuk) || 0;
+            const keluar = Number(t.Keluar) || 0;
+            
+            masukProjectMap[t.JenisProject] = (masukProjectMap[t.JenisProject] || 0) + masuk;
+            keluarProjectMap[t.JenisProject] = (keluarProjectMap[t.JenisProject] || 0) + keluar;
+            
+            masukAkunMap[t.Akun] = (masukAkunMap[t.Akun] || 0) + masuk;
+            keluarAkunMap[t.Akun] = (keluarAkunMap[t.Akun] || 0) + keluar;
+        });
+
+        const colors = ['#10B981','#3B82F6','#F59E0B','#EF4444','#8B5CF6','#EC4899'];
+
+        // Chart Masuk Project
+        const ctxMP = document.getElementById('chartMasukProject').getContext('2d');
+        if(chartMasukProjectInstance) chartMasukProjectInstance.destroy();
+        chartMasukProjectInstance = new Chart(ctxMP, {
+            type: 'doughnut',
+            data: { labels: Object.keys(masukProjectMap), datasets: [{ data: Object.values(masukProjectMap), backgroundColor: colors }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Pemasukan per Project' } } }
+        });
+
+        // Chart Keluar Project (yang lama, dipertahankan)
+        const ctxKP = document.getElementById('chartKeluarProject').getContext('2d');
+        if(chartProjectInstance) chartProjectInstance.destroy();
+        chartProjectInstance = new Chart(ctxKP, {
+            type: 'doughnut',
+            data: { labels: Object.keys(keluarProjectMap), datasets: [{ data: Object.values(keluarProjectMap), backgroundColor: colors }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Pengeluaran per Project' } } }
+        });
+
+        // Chart Masuk Akun
+        const ctxMA = document.getElementById('chartMasukAkun').getContext('2d');
+        if(chartMasukAkunInstance) chartMasukAkunInstance.destroy();
+        chartMasukAkunInstance = new Chart(ctxMA, {
+            type: 'doughnut',
+            data: { labels: Object.keys(masukAkunMap), datasets: [{ data: Object.values(masukAkunMap), backgroundColor: colors }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Pemasukan per Akun' } } }
+        });
+
+        // Chart Keluar Akun (yang lama, dipertahankan)
+        const ctxKA = document.getElementById('chartKeluarAkun').getContext('2d');
+        if(chartAkunInstance) chartAkunInstance.destroy();
+        chartAkunInstance = new Chart(ctxKA, {
+            type: 'doughnut',
+            data: { labels: Object.keys(keluarAkunMap), datasets: [{ data: Object.values(keluarAkunMap), backgroundColor: colors }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Pengeluaran per Akun' } } }
+        });
+    }
+
+    // 4. Render Chart Tahunan (Bar + Trendline Saldo)
+    function renderChartTahunan(trans, tahun) {
+        const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+        const masukPerBulan = new Array(12).fill(0);
+        const keluarPerBulan = new Array(12).fill(0);
+        const saldoPerBulan = new Array(12).fill(0);
+
+        let runningSaldo = 0;
+
+        trans.forEach(t => {
+            const d = new Date(t.Tanggal);
+            const monthIdx = d.getMonth(); // 0-11
+            const masuk = Number(t.Masuk) || 0;
+            const keluar = Number(t.Keluar) || 0;
+            
+            masukPerBulan[monthIdx] += masuk;
+            keluarPerBulan[monthIdx] += keluar;
+        });
+
+        // Hitung saldo kumulatif untuk trendline
+        for(let i=0; i<12; i++) {
+            runningSaldo += (masukPerBulan[i] - keluarPerBulan[i]);
+            saldoPerBulan[i] = runningSaldo;
+        }
+
+        const ctxT = document.getElementById('chartTahunan').getContext('2d');
+        if(chartTahunanInstance) chartTahunanInstance.destroy();
+        
+        chartTahunanInstance = new Chart(ctxT, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Pemasukan',
+                        data: masukPerBulan,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)', // Green
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Pengeluaran',
+                        data: keluarPerBulan,
+                        backgroundColor: 'rgba(239, 68, 68, 0.7)', // Red
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Trendline Saldo',
+                        data: saldoPerBulan,
+                        type: 'line', // Tipe campuran: Line di atas Bar
+                        borderColor: 'rgba(59, 130, 246, 1)', // Blue
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3, // Membuat garis sedikit melengkung
+                        pointRadius: 5,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    title: { display: true, text: `Laporan Keuangan Tahun ${tahun}`, font: { size: 18 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                label += 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- TRANSACTIONS ---
+    async function loadTransactions() {
+        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'getTransactions'}) });
+        const data = await res.json();
+        if(data.status !== 'success') return;
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        
+        const sorted = data.data.sort((a,b) => new Date(b.Tanggal) - new Date(a.Tanggal));
+
+        sorted.forEach(t => {
+            const tgl = new Date(t.Tanggal).toLocaleDateString('id-ID');
+            const masuk = t.Masuk ? `<span class="text-green-600 font-medium">Rp ${Number(t.Masuk).toLocaleString('id-ID')}</span>` : '-';
+            const keluar = t.Keluar ? `<span class="text-red-600 font-medium">Rp ${Number(t.Keluar).toLocaleString('id-ID')}</span>` : '-';
+            const foto = t.FotoURL ? `<a href="${t.FotoURL}" target="_blank" class="text-blue-500 hover:underline"><i class="fas fa-image"></i> Lihat</a>` : '-';
+            
+            tbody.innerHTML += `
+                <tr class="hover:bg-gray-50 border-b text-sm">
+                    <td class="p-3">${tgl}</td>
+                    <td class="p-3">${t.JenisProject}</td>
+                    <td class="p-3">${t.Uraian}</td>
+                    <td class="p-3 text-right">${masuk}</td>
+                    <td class="p-3 text-right">${keluar}</td>
+                    <td class="p-3">${t.Akun}</td>
+                    <td class="p-3 text-center">${foto}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function openModal() {
+        document.getElementById('formTransaksi').reset();
+        document.getElementById('inpTanggal').valueAsDate = new Date();
+        document.getElementById('modalTransaksi').classList.remove('hidden');
+        document.getElementById('inpMasuk').oninput = checkFotoRequirement;
+        document.getElementById('inpKeluar').oninput = checkFotoRequirement;
+        checkFotoRequirement();
+    }
+
+    function closeModal() {
+        document.getElementById('modalTransaksi').classList.add('hidden');
+    }
+
+    function checkFotoRequirement() {
+        const masuk = document.getElementById('inpMasuk').value;
+        const keluar = document.getElementById('inpKeluar').value;
+        const fotoKet = document.getElementById('fotoKet');
+        
+        if (keluar && Number(keluar) > 0) {
+            fotoKet.innerText = '(Wajib untuk Keluar)';
+            fotoKet.classList.remove('text-gray-400');
+            fotoKet.classList.add('text-red-500', 'font-bold');
+        } else {
+            fotoKet.innerText = '(Opsional untuk Masuk)';
+            fotoKet.classList.add('text-gray-400');
+            fotoKet.classList.remove('text-red-500', 'font-bold');
+        }
+    }
+
+    async function submitTransaksi(e) {
+        e.preventDefault();
+        const masuk = document.getElementById('inpMasuk').value || 0;
+        const keluar = document.getElementById('inpKeluar').value || 0;
+        const fileInput = document.getElementById('inpFoto');
+
+        if (Number(keluar) > 0 && fileInput.files.length === 0) {
+            alert("Bukti foto WAJIB diunggah untuk transaksi pengeluaran!");
+            return;
+        }
+
+        let fotoBase64 = null;
+        let fotoType = null;
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            fotoType = file.type;
+            fotoBase64 = await resizeImage(file, 800);
+        }
+
+        const payload = {
+            action: 'saveTransaction',
+            email: currentUser.email,
+            tanggal: document.getElementById('inpTanggal').value,
+            jenisProject: document.getElementById('inpProject').value,
+            uraian: document.getElementById('inpUraian').value,
+            masuk: masuk,
+            keluar: keluar,
+            akun: document.getElementById('inpAkun').value,
+            fotoBase64: fotoBase64,
+            fotoType: fotoType
+        };
+
+        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        
+        if(data.status === 'success') {
+            alert("Transaksi berhasil disimpan!");
+            closeModal();
+            loadTransactions();
+        } else {
+            alert("Gagal: " + data.message);
+        }
+    }
+
+    function resizeImage(file, maxWidth) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = height * (maxWidth / width);
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(dataUrl.split(',')[1]);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // --- ADMIN: KELOLA USER (UPDATED) ---
+    async function loadUsers() {
+        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'getUsers'}) });
+        const data = await res.json();
+        if(data.status !== 'success') return;
+
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+        data.data.forEach(u => {
+            const isWaiting = u.Role === 'WAITING';
+            const isSelf = u.Email === currentUser.email;
+            
+            tbody.innerHTML += `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-2 text-sm">${u.Email}</td>
+                    <td class="p-2 text-sm font-medium">${u.Nama}</td>
+                    <td class="p-2 font-bold ${isWaiting ? 'text-yellow-600' : 'text-green-600'} text-sm">${u.Role}</td>
+                    <td class="p-2">
+                        ${!isSelf ? `
+                        <div class="flex items-center gap-2">
+                            <select onchange="updateUserRole('${u.Email}', this.value)" class="border rounded p-1 text-sm flex-1">
+                                <option value="WAITING" ${u.Role==='WAITING'?'selected':''}>WAITING</option>
+                                <option value="PENGUSAHA" ${u.Role==='PENGUSAHA'?'selected':''}>PENGUSAHA</option>
+                                <option value="PENGELOLA" ${u.Role==='PENGELOLA'?'selected':''}>PENGELOLA</option>
+                                <option value="ADMIN" ${u.Role==='ADMIN'?'selected':''}>ADMIN</option>
+                            </select>
+                            <button onclick="editUserName('${u.Email}', '${u.Nama}')" class="text-blue-500 hover:text-blue-700 p-1" title="Edit Nama">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteUser('${u.Email}')" class="text-red-500 hover:text-red-700 p-1" title="Hapus User">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        ` : '<span class="text-gray-400 text-xs">Akun Sendiri</span>'}
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function updateUserRole(email, role) {
+        if(confirm(`Ubah role ${email} menjadi ${role}?`)) {
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'updateRole', email, role}) });
+            loadUsers();
+        }
+    }
+
+    // Fungsi baru: Edit Nama User
+    async function editUserName(email, currentName) {
+        const newName = prompt("Edit Nama User:", currentName);
+        if (newName !== null && newName.trim() !== "" && newName.trim() !== currentName) {
+            const res = await fetch(WEB_APP_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({action: 'editUserName', email: email, newName: newName.trim()}) 
+            });
+            const data = await res.json();
+            if(data.status === 'success') {
+                alert("Nama berhasil diubah!");
+                loadUsers();
+            } else {
+                alert("Gagal: " + data.message);
+            }
+        }
+    }
+
+    // Fungsi baru: Hapus User
+    async function deleteUser(email) {
+        if(confirm(`Hapus user ${email}?\nPenghapusan ini akan me-reset aksesnya. Jika ia login kembali, akan masuk WAITING LIST.`)) {
+            const res = await fetch(WEB_APP_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({action: 'deleteUser', email: email}) 
+            });
+            const data = await res.json();
+            if(data.status === 'success') {
+                alert("User berhasil dihapus!");
+                loadUsers();
+            } else {
+                alert("Gagal: " + data.message);
+            }
+        }
+    }
+    
+    // --- ADMIN: KELOLA OPSI ---
+    // --- FUNGSI BARU UNTUK KELOLA OPSI ---
+
+    // 1. Render tampilan daftar opsi (dengan tombol Edit & Hapus)
+    function renderOptionsList() {
+      const pList = document.getElementById('listProject');
+      const aList = document.getElementById('listAkun');
+      
+      pList.innerHTML = appOptions.jenisProject.map((p, i) => `
+        <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border border-gray-200">
+          <span class="font-medium text-gray-700">${p}</span>
+          <div class="flex gap-3">
+            <button onclick="editOption('jenisProject', ${i})" class="text-blue-500 hover:text-blue-700 text-sm"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteOption('jenisProject', ${i})" class="text-red-500 hover:text-red-700 text-sm"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+      
+      aList.innerHTML = appOptions.akun.map((a, i) => `
+        <div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border border-gray-200">
+          <span class="font-medium text-gray-700">${a}</span>
+          <div class="flex gap-3">
+            <button onclick="editOption('akun', ${i})" class="text-blue-500 hover:text-blue-700 text-sm"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteOption('akun', ${i})" class="text-red-500 hover:text-red-700 text-sm"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 2. Fungsi simpan seluruh array ke Google Sheet
+    async function saveOptionsToSheet() {
+      await fetch(WEB_APP_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'saveOptions', data: appOptions }) 
+      });
+    }
+
+    // 3. Fungsi Tambah Opsi Baru
+    async function addOption(type) {
+      const inputId = type === 'jenisProject' ? 'newProject' : 'newAkun';
+      const val = document.getElementById(inputId).value.trim();
+      if(!val) return;
+
+      appOptions[type].push(val); // Masukkan ke array lokal
+      await saveOptionsToSheet(); // Kirim seluruh array ke Sheet
+      renderOptionsList(); // Render ulang tampilan
+      document.getElementById(inputId).value = ''; // Kosongkan input
+    }
+
+    // 4. Fungsi Edit Opsi
+      async function editOption(type, index) {
+      const oldName = appOptions[type][index];
+      const newName = prompt("Edit nama:", oldName);
+      
+      if (newName !== null && newName.trim() !== "" && newName.trim() !== oldName) {
+        appOptions[type][index] = newName.trim(); // Update array lokal
+        await saveOptionsToSheet(); // Kirim ke Sheet
+        renderOptionsList(); // Render ulang
+        }
+      }
+
+    // 5. Fungsi Hapus Opsi
+    async function deleteOption(type, index) {
+      const name = appOptions[type][index];
+      if(confirm(`Hapus "${name}"?`)) {
+        appOptions[type].splice(index, 1); // Hapus dari array lokal
+        await saveOptionsToSheet(); // Kirim ke Sheet
+        renderOptionsList(); // Render ulang
+      }
+    }
+    // --- CEK SESSION SAAT LOAD ---
+    window.onload = () => {
+        const saved = localStorage.getItem('kasUser');
+        if(saved) {
+            currentUser = JSON.parse(saved);
+            initApp();
+        }
+    };
+</script>
+</body>
+</html>
