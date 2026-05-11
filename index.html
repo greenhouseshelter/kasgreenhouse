@@ -366,7 +366,7 @@
 
     // --- NAVIGASI ---
     function showView(viewName) {
-        ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions'].forEach(id => {
+        ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions', 'viewExportExcel'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
         });
         document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)).classList.remove('hidden');
