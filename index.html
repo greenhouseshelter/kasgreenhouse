@@ -741,18 +741,24 @@
 
     async function updateUserRole(email, role) {
         if(confirm(`Ubah role ${email} menjadi ${role}?`)) {
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'updateRole', email, role}) });
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
+                action: 'updateRole', 
+                email: email, 
+                role: role,
+                requesterEmail: currentUser.email // <--- TAMBAHKAN INI
+            }) });
             loadUsers();
         }
     }
 
     // Fungsi baru: Edit Nama User
+
     async function editUserName(email, currentName) {
         const newName = prompt("Edit Nama User:", currentName);
         if (newName !== null && newName.trim() !== "" && newName.trim() !== currentName) {
             const res = await fetch(WEB_APP_URL, { 
                 method: 'POST', 
-                body: JSON.stringify({action: 'editUserName', email: email, newName: newName.trim()}) 
+                body: JSON.stringify({action: 'editUserName', email: email, newName: newName.trim(), requesterEmail: currentUser.email}) 
             });
             const data = await res.json();
             if(data.status === 'success') {
@@ -769,7 +775,7 @@
         if(confirm(`Hapus user ${email}?\nPenghapusan ini akan me-reset aksesnya. Jika ia login kembali, akan masuk WAITING LIST.`)) {
             const res = await fetch(WEB_APP_URL, { 
                 method: 'POST', 
-                body: JSON.stringify({action: 'deleteUser', email: email}) 
+                body: JSON.stringify({action: 'deleteUser', email: email, requesterEmail: currentUser.email}) 
             });
             const data = await res.json();
             if(data.status === 'success') {
@@ -814,7 +820,7 @@
     async function saveOptionsToSheet() {
       await fetch(WEB_APP_URL, { 
         method: 'POST', 
-        body: JSON.stringify({ action: 'saveOptions', data: appOptions }) 
+        body: JSON.stringify({ action: 'saveOptions', data: appOptions, requesterEmail: currentUser.email }) 
       });
     }
 
