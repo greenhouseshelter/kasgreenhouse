@@ -58,11 +58,14 @@
             </aside>
             
             <!-- Mobile Bottom Nav -->
-            <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex z-50">
-                <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dashboard</button>
+            <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around z-50 overflow-x-auto">
+                <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dash</button>
                 <button onclick="showView('transactions')" id="mMenuTransaksi" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-list block text-lg mb-1"></i>Transaksi</button>
+                <!-- Menu Khusus Admin di HP (Disembunyikan default) -->
+                <button onclick="showView('adminUsers')" id="mMenuUsers" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-users block text-lg mb-1"></i>User</button>
+                <button onclick="showView('adminOptions')" id="mMenuOptions" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs block text-lg mb-1"></i>Opsi</button>
             </div>
-
+            
             <!-- Main Content -->
             <main class="flex-1 p-6 overflow-y-auto pb-20 md:pb-6">
                 
@@ -91,7 +94,8 @@
 
                     <!-- Charts Tahunan -->
                     <div id="chartsTahunan" class="hidden">
-                        <div class="bg-white p-4 rounded-lg shadow"><canvas id="chartTahunan"></canvas></div>
+                        <!-- Tambahkan min-h-[400px] agar grafik tidak gepeng di HP -->
+                        <div class="bg-white p-4 rounded-lg shadow min-h-[400px] md:min-h-[500px]"><canvas id="chartTahunan"></canvas></div>
                     </div>
                 </div>
                 
@@ -292,9 +296,15 @@
         if (currentUser.role === 'ADMIN') {
             document.getElementById('menuUsers').classList.remove('hidden');
             document.getElementById('menuOptions').classList.remove('hidden');
+            // Tampilkan menu mobile untuk Admin
+            document.getElementById('mMenuUsers').classList.remove('hidden');
+            document.getElementById('mMenuOptions').classList.remove('hidden');
         } else {
             document.getElementById('menuUsers').classList.add('hidden');
             document.getElementById('menuOptions').classList.add('hidden');
+            // Sembunyikan menu mobile untuk non-Admin
+            document.getElementById('mMenuUsers').classList.add('hidden');
+            document.getElementById('mMenuOptions').classList.add('hidden');
         }
 
         loadOptions();
@@ -540,6 +550,7 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
