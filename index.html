@@ -250,6 +250,8 @@
     let chartMasukAkunInstance = null;
     let chartTahunanInstance = null;
     let dashViewMode = 'bulanan'; // Default view
+    let cachedTrans = []; // <--- TAMBAHKAN INI: Cache untuk data transaksi
+    let currentFetchParams = {}; // <--- TAMBAHKAN INI: Menyimpan parameter filter terakhir
     
     // --- AUTENTIKASI GOOGLE ---
     function handleGoogleLogin(response) {
@@ -421,7 +423,7 @@
             document.getElementById('chartsBulanan').classList.remove('hidden');
             document.getElementById('chartsTahunan').classList.add('hidden');
         }
-        loadDashboard();
+        loadDashboard(true);
     }
 
     // 2. Load Dashboard Utama
@@ -429,19 +431,8 @@
         const bulan = document.getElementById('filterBulan').value;
         const tahun = document.getElementById('filterTahun').value;
         
-        // Kirim request ke backend
-        const res = await fetch(WEB_APP_URL, { 
-            method: 'POST', 
-            body: JSON.stringify({
-                action: 'getTransactions', 
-                bulan: dashViewMode === 'tahunan' ? 0 : bulan, // 0 = ambil semua bulan
-                tahun: tahun
-            }) 
-        });
-        const data = await res.json();
-        
-        if(data.status !== 'success') return;
-        const trans = data.data;
+        // Gunakan refreshData (akan instan jika data sudah ada)
+        const trans = await refreshData(bulan, tahun, forceRefresh); // Terima parameter forceRefresh
 
         let totalMasuk = 0, totalKeluar = 0;
         trans.forEach(t => {
@@ -472,7 +463,7 @@
             renderChartsBulanan(trans);
         }
     }
-
+        
     // 3. Render Chart Bulanan (Pemasukan & Pengeluaran per Project/Akun)
     function renderChartsBulanan(trans) {
         const masukProjectMap = {}, keluarProjectMap = {};
@@ -618,17 +609,20 @@
             }
         });
     }
-    
+
     // --- TRANSACTIONS ---
     async function loadTransactions() {
-        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'getTransactions'}) });
-        const data = await res.json();
-        if(data.status !== 'success') return;
+        // Jika cache kosong, ambil data tahun berjalan dulu
+        if(cachedTrans.length === 0) {
+            const tahun = document.getElementById('filterTahun').value || new Date().getFullYear();
+            await refreshData(0, tahun); // Ambil semua bulan di tahun itu
+        }
 
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
         
-        const sorted = data.data.sort((a,b) => new Date(b.Tanggal) - new Date(a.Tanggal));
+        // Gunakan data dari cache
+        const sorted = [...cachedTrans].sort((a,b) => new Date(b.Tanggal) - new Date(a.Tanggal));
 
         sorted.forEach(t => {
             const tgl = new Date(t.Tanggal).toLocaleDateString('id-ID');
@@ -714,10 +708,11 @@
 
         const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
         const data = await res.json();
-        
+
         if(data.status === 'success') {
             alert("Transaksi berhasil disimpan!");
             closeModal();
+            cachedTrans = []; // <--- TAMBAHKAN INI: Kosongkan cache
             loadTransactions();
         } else {
             alert("Gagal: " + data.message);
@@ -923,6 +918,33 @@
       }
     }
 
+    // --- FUNGSI PUSAT UNTUK AMBIL DATA DARI SERVER ---
+    async function refreshData(bulan, tahun, forceRefresh = false) {
+        // Jika data sudah ada di cache dan bukan paksa refresh, langsung pakai cache
+        if (cachedTrans.length > 0 && !forceRefresh && currentFetchParams.bulan === bulan && currentFetchParams.tahun === tahun) {
+            return cachedTrans;
+        }
+
+        // Jika tidak ada di cache, ambil ke GAS
+        const res = await fetch(WEB_APP_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({
+                action: 'getTransactions', 
+                bulan: dashViewMode === 'tahunan' ? 0 : bulan,
+                tahun: tahun
+            }) 
+        });
+        const data = await res.json();
+        
+        if(data.status === 'success') {
+            cachedTrans = data.data;
+            currentFetchParams = { bulan, tahun };
+            return cachedTrans;
+        } else {
+            return [];
+        }
+    }
+    
     // --- FUNGSI EXPORT EXCEL ---
     async function downloadExcel() {
         const startDate = document.getElementById('expStartDate').value;
