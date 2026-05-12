@@ -369,15 +369,12 @@
         
         if (viewEl) {
             viewEl.classList.remove('hidden');
-            console.log('[DEBUG showView] Menampilkan:', viewId);
-        } else {
-            console.error('[DEBUG showView] Element TIDAK DITEMUKAN:', viewId);
-            return; // Jangan lanjut jika view tidak ada
         }
     
+        // BARIS INI YANG SANGAT PENTING
         if (viewName === 'dashboard') loadDashboard();
         if (viewName === 'transactions') loadTransactions();
-        if (viewName === 'adminUsers') loadUsers();
+        if (viewName === 'adminUsers') loadUsers(); // <--- PASTIKAN BARIS INI ADA
         if (viewName === 'adminOptions') renderOptionsList();
     }
     
