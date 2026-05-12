@@ -64,7 +64,7 @@
                 <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dash</button>
                 <button onclick="showView('transactions')" id="mMenuTransaksi" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-list block text-lg mb-1"></i>Transaksi</button>
                 <!-- Menu Khusus Admin di HP (Disembunyikan default) -->
-                <button onclick="showView('adminUsers')" id="mMenuUsers" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-users block text-lg mb-1"></i>User</button>
+                <button onclick="showView('adminUsers')" id="mMenuUsers" class="hidden p-3 text-center text-xs hover:bg-gray-100 text-purple-600" style="flex:1;">
                 <button onclick="showView('adminOptions')" id="mMenuOptions" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs block text-lg mb-1"></i>Opsi</button>
             </div>
             
@@ -336,9 +336,11 @@
         if (isAdmin) {
             document.getElementById('menuUsers').classList.remove('hidden');
             document.getElementById('mMenuUsers').classList.remove('hidden');
+            console.log('[DEBUG initApp] Menu Kelola User DITAMPILKAN (role: ADMIN)');
         } else {
             document.getElementById('menuUsers').classList.add('hidden');
             document.getElementById('mMenuUsers').classList.add('hidden');
+            console.log('[DEBUG initApp] Menu Kelola User disembunyikan (role:', currentUser.role, ')');
         }
 
         // Menu Kelola Opsi (Admin & Finance)
@@ -361,9 +363,19 @@
         ['viewDashboard', 'viewTransactions', 'viewAdminUsers', 'viewAdminOptions'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
         });
-        document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1)).classList.remove('hidden');
-
-        // Jangan panggil loadDashboard di sini untuk menghindari double request
+        
+        const viewId = 'view' + viewName.charAt(0).toUpperCase() + viewName.slice(1);
+        const viewEl = document.getElementById(viewId);
+        
+        if (viewEl) {
+            viewEl.classList.remove('hidden');
+            console.log('[DEBUG showView] Menampilkan:', viewId);
+        } else {
+            console.error('[DEBUG showView] Element TIDAK DITEMUKAN:', viewId);
+            return; // Jangan lanjut jika view tidak ada
+        }
+    
+        if (viewName === 'dashboard') loadDashboard();
         if (viewName === 'transactions') loadTransactions();
         if (viewName === 'adminUsers') loadUsers();
         if (viewName === 'adminOptions') renderOptionsList();
@@ -746,50 +758,124 @@
         });
     }
 
-    // --- ADMIN: KELOLA USER (UPDATED) ---
+    // --- ADMIN: KELOLA USER (UPDATED - ROBUST) ---
     async function loadUsers() {
-        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
-            action: 'getUsers',
-            requesterEmail: currentUser.email // <--- TAMBAHKAN BARIS INI
-        }) });
-        const data = await res.json();
-        if(data.status !== 'success') return;
-
         const tbody = document.getElementById('usersTableBody');
-        tbody.innerHTML = '';
-        data.data.forEach(u => {
-            const isWaiting = u.Role === 'WAITING';
-            const isSelf = u.Email === currentUser.email;
+        
+        // Tampilkan loading state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="p-6 text-center text-gray-400">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Memuat data user...
+                </td>
+            </tr>`;
+        
+        try {
+            console.log('[DEBUG loadUsers] Mulai fetch, currentUser:', currentUser);
             
-            tbody.innerHTML += `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-2 text-sm">${u.Email}</td>
-                    <td class="p-2 text-sm font-medium">${u.Nama}</td>
-                    <td class="p-2 font-bold ${isWaiting ? 'text-yellow-600' : 'text-green-600'} text-sm">${u.Role}</td>
-                    <td class="p-2">
-                        ${!isSelf ? `
-                        <div class="flex items-center gap-2">
-                            <select onchange="updateUserRole('${u.Email}', this.value)" class="border rounded p-1 text-sm flex-1">
-                                <option value="WAITING" ${u.Role==='WAITING'?'selected':''}>WAITING</option>
-                                <option value="PENGUSAHA" ${u.Role==='PENGUSAHA'?'selected':''}>PENGUSAHA</option>
-                                <option value="PENGELOLA" ${u.Role==='PENGELOLA'?'selected':''}>PENGELOLA</option>
-                                <option value="FINANCE" ${u.Role==='FINANCE'?'selected':''}>FINANCE</option>
-                                <option value="ADMIN" ${u.Role==='ADMIN'?'selected':''}>ADMIN</option>
-                            </select>                            
-                            <button onclick="editUserName('${u.Email}', '${u.Nama}')" class="text-blue-500 hover:text-blue-700 p-1" title="Edit Nama">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="deleteUser('${u.Email}')" class="text-red-500 hover:text-red-700 p-1" title="Hapus User">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                        ` : '<span class="text-gray-400 text-xs">Akun Sendiri</span>'}
+            const payload = {
+                action: 'getUsers',
+                requesterEmail: currentUser ? currentUser.email : ''
+            };
+            console.log('[DEBUG loadUsers] Payload dikirim:', payload);
+            
+            const res = await fetch(WEB_APP_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(payload) 
+            });
+            
+            // Cek apakah response OK
+            if (!res.ok) {
+                throw new Error(`HTTP Error: ${res.status} ${res.statusText}`);
+            }
+            
+            const text = await res.text(); // Ambil sebagai text dulu
+            console.log('[DEBUG loadUsers] Raw response:', text.substring(0, 500));
+            
+            let data;
+            try {
+                data = JSON.parse(text); // Parse manual agar bisa debug
+            } catch (parseErr) {
+                console.error('[DEBUG loadUsers] JSON Parse Error:', parseErr);
+                throw new Error('Server mengembalikan response yang bukan JSON. Cek Web App URL Anda.');
+            }
+            
+            console.log('[DEBUG loadUsers] Parsed data:', data);
+            
+            if (data.status !== 'success') {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="p-6 text-center text-red-500">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Gagal memuat: ${data.message || 'Status bukan success'}
+                        </td>
+                    </tr>`;
+                return;
+            }
+    
+            // Cek apakah data.data ada dan berupa array
+            if (!data.data || !Array.isArray(data.data) || data.data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="p-6 text-center text-gray-400">
+                            <i class="fas fa-users mr-2"></i> Belum ada data user terdaftar.
+                        </td>
+                    </tr>`;
+                return;
+            }
+    
+            // Render data
+            tbody.innerHTML = '';
+            data.data.forEach(u => {
+                const isWaiting = u.Role === 'WAITING';
+                const isSelf = u.Email === currentUser.email;
+                
+                // Escape single quote untuk nama (antisipasi nama seperti O'Connor)
+                const safeName = (u.Nama || '').replace(/'/g, "\\'");
+                const safeEmail = (u.Email || '').replace(/'/g, "\\'");
+                
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 text-sm">${u.Email || '-'}</td>
+                        <td class="p-2 text-sm font-medium">${u.Nama || '-'}</td>
+                        <td class="p-2 font-bold ${isWaiting ? 'text-yellow-600' : 'text-green-600'} text-sm">${u.Role || '-'}</td>
+                        <td class="p-2">
+                            ${!isSelf ? `
+                            <div class="flex items-center gap-2">
+                                <select onchange="updateUserRole('${safeEmail}', this.value)" class="border rounded p-1 text-sm flex-1">
+                                    <option value="WAITING" ${u.Role==='WAITING'?'selected':''}>WAITING</option>
+                                    <option value="PENGUSAHA" ${u.Role==='PENGUSAHA'?'selected':''}>PENGUSAHA</option>
+                                    <option value="PENGELOLA" ${u.Role==='PENGELOLA'?'selected':''}>PENGELOLA</option>
+                                    <option value="FINANCE" ${u.Role==='FINANCE'?'selected':''}>FINANCE</option>
+                                    <option value="ADMIN" ${u.Role==='ADMIN'?'selected':''}>ADMIN</option>
+                                </select>                            
+                                <button onclick="editUserName('${safeEmail}', '${safeName}')" class="text-blue-500 hover:text-blue-700 p-1" title="Edit Nama">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteUser('${safeEmail}')" class="text-red-500 hover:text-red-700 p-1" title="Hapus User">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            ` : '<span class="text-gray-400 text-xs">Akun Sendiri</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            console.log('[DEBUG loadUsers] Sukses render', data.data.length, 'user');
+            
+        } catch (err) {
+            console.error('[DEBUG loadUsers] Error:', err);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="p-6 text-center text-red-500">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        Terjadi kesalahan: ${err.message}
                     </td>
-                </tr>
-            `;
-        });
+                </tr>`;
+        }
     }
-
+    
     async function updateUserRole(email, role) {
         if(confirm(`Ubah role ${email} menjadi ${role}?`)) {
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
