@@ -427,12 +427,12 @@
     }
 
     // 2. Load Dashboard Utama
-    async function loadDashboard() {
+    async function loadDashboard(forceRefresh = false) { // <--- TAMBAHKAN PARAMETER forceRefresh DI SINI
         const bulan = document.getElementById('filterBulan').value;
         const tahun = document.getElementById('filterTahun').value;
         
         // Gunakan refreshData (akan instan jika data sudah ada)
-        const trans = await refreshData(bulan, tahun, forceRefresh); // Terima parameter forceRefresh
+        const trans = await refreshData(bulan, tahun, forceRefresh); // Sekarang forceRefresh sudah terdefinisi
 
         let totalMasuk = 0, totalKeluar = 0;
         trans.forEach(t => {
@@ -463,7 +463,7 @@
             renderChartsBulanan(trans);
         }
     }
-        
+       
     // 3. Render Chart Bulanan (Pemasukan & Pengeluaran per Project/Akun)
     function renderChartsBulanan(trans) {
         const masukProjectMap = {}, keluarProjectMap = {};
