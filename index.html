@@ -174,6 +174,32 @@
                 <!-- ADMIN LOGS VIEW -->
                 <div id="viewAdminLogs" class="hidden">
                     <h2 class="text-2xl font-bold mb-6 text-red-600"><i class="fas fa-history mr-2"></i>Log Aktivitas Sistem</h2>
+                    
+                    <!-- Kartu Filter & Export -->
+                    <div class="bg-white p-4 rounded-lg shadow mb-6 border-l-4 border-red-500">
+                        <div class="flex flex-wrap gap-3 items-end">
+                            <div class="flex-1 min-w-[180px]">
+                                <label class="block text-xs font-medium mb-1 text-gray-500">Dari Tanggal & Jam</label>
+                                <input type="datetime-local" id="logStartDate" class="w-full border rounded p-2 text-sm">
+                            </div>
+                            <div class="flex-1 min-w-[180px]">
+                                <label class="block text-xs font-medium mb-1 text-gray-500">Sampai Tanggal & Jam</label>
+                                <input type="datetime-local" id="logEndDate" class="w-full border rounded p-2 text-sm">
+                            </div>
+                            <button onclick="applyLogFilter()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 font-bold text-sm whitespace-nowrap">
+                                <i class="fas fa-filter mr-1"></i> Filter
+                            </button>
+                            <button onclick="resetLogFilter()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg shadow hover:bg-gray-300 font-bold text-sm whitespace-nowrap">
+                                Reset
+                            </button>
+                            <button onclick="downloadLogsExcel()" id="btnExportLogs" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 font-bold text-sm whitespace-nowrap">
+                                <i class="fas fa-file-excel mr-1"></i> Unduh Excel
+                            </button>
+                        </div>
+                        <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
+                    </div>
+                
+                    <!-- Tabel Log -->
                     <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -818,13 +844,23 @@
       }
     }
 
-    // --- ADMIN: LOG AKTIVITAS ---
-    async function loadLogs() {
+    // --- ADMIN: LOG AKTIVITAS (LIMIT, FILTER, EXCEL) ---
+    let currentLogsData = []; // Simpan data log saat ini untuk keperluan Excel
+
+    async function loadLogs(limit = 100, startDate = '', endDate = '') {
         const tbody = document.getElementById('logsTableBody');
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat Log...</td></tr>`;
         
         try {
-            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'getLogs', requesterEmail: currentUser.email }) });
+            const payload = {
+                action: 'getLogs',
+                requesterEmail: currentUser.email,
+                limit: limit,
+                startDate: startDate,
+                endDate: endDate
+            };
+
+            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
             const data = await res.json();
             
             if(data.status !== 'success') {
@@ -832,32 +868,36 @@
                 return;
             }
 
-            const logs = data.data;
-            if(!logs || logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">Belum ada aktivitas tercatat.</td></tr>`;
+            currentLogsData = data.data || [];
+            const infoEl = document.getElementById('logFilterInfo');
+            
+            if (startDate && endDate) {
+                infoEl.innerText = `Menampilkan ${currentLogsData.length} log dalam rentang waktu yang dipilih.`;
+            } else {
+                infoEl.innerText = `Menampilkan ${currentLogsData.length} log terakhir.`;
+            }
+
+            if(currentLogsData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">Tidak ada log ditemukan.</td></tr>`;
                 return;
             }
 
-            logs.reverse(); // Terbaru di atas
-
             tbody.innerHTML = '';
-            logs.forEach(log => {
+            currentLogsData.forEach(log => {
                 const tgl = new Date(log.Timestamp).toLocaleString('id-ID');
                 const action = log.Action || '-';
                 const statusLog = log.Status || '-';
                 
-                // Badge Status
                 const statusBadge = statusLog === 'Berhasil' 
                     ? `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">Berhasil</span>`
                     : `<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">Gagal</span>`;
 
-                // Beautify Details JSON
                 let detailsHtml = '-';
                 if (log.Details) {
                     try {
                         const parsed = JSON.parse(log.Details);
                         delete parsed.fotoBase64; delete parsed.fotoType; delete parsed.requesterEmail;
-                        detailsHtml = `<pre class="text-xs bg-gray-50 p-2 rounded overflow-x-auto max-w-md">${JSON.stringify(parsed, null, 2)}</pre>`;
+                        detailsHtml = `<pre class="text-xs bg-gray-50 p-2 rounded overflow-x-auto max-w-md whitespace-pre-wrap">${JSON.stringify(parsed, null, 2)}</pre>`;
                     } catch(e) {
                         detailsHtml = `<span class="text-xs">${log.Details}</span>`;
                     }
@@ -875,6 +915,67 @@
             });
         } catch(err) {
             tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    function applyLogFilter() {
+        const start = document.getElementById('logStartDate').value;
+        const end = document.getElementById('logEndDate').value;
+        if (!start || !end) {
+            alert("Pilih tanggal & jam awal dan akhir terlebih dahulu!");
+            return;
+        }
+        // Load dengan batas 5000 untuk filter (sesuaikan jika perlu lebih)
+        loadLogs(5000, start, end); 
+    }
+
+    function resetLogFilter() {
+        document.getElementById('logStartDate').value = '';
+        document.getElementById('logEndDate').value = '';
+        loadLogs(100); // Kembali ke default 100 terakhir
+    }
+
+    function downloadLogsExcel() {
+        if (currentLogsData.length === 0) {
+            alert("Tidak ada data log untuk diunduh.");
+            return;
+        }
+
+        const btnExport = document.getElementById('btnExportLogs');
+        btnExport.disabled = true;
+        btnExport.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Memproses...';
+
+        try {
+            const wsData = [["Waktu", "User", "Kegiatan", "Status", "Detail Variabel"]];
+            
+            currentLogsData.forEach(log => {
+                const tgl = new Date(log.Timestamp).toLocaleString('id-ID');
+                let cleanDetails = log.Details || '-';
+                
+                // Rapikan detail untuk tampilan di sel Excel
+                try {
+                    const parsed = JSON.parse(log.Details);
+                    delete parsed.fotoBase64; delete parsed.fotoType; delete parsed.requesterEmail;
+                    cleanDetails = JSON.stringify(parsed, null, 2); 
+                } catch(e) {}
+
+                wsData.push([tgl, log.User || '-', log.Action || '-', log.Status || '-', cleanDetails]);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Atur lebar kolom Excel
+            ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 10 }, { wch: 60 }];
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Log Aktivitas");
+            XLSX.writeFile(wb, `Log_Aktivitas_Kas_${new Date().toLocaleDateString('id-ID')}.xlsx`);
+
+        } catch(err) {
+            alert("Gagal membuat file Excel: " + err.message);
+        } finally {
+            btnExport.disabled = false;
+            btnExport.innerHTML = '<i class="fas fa-file-excel mr-1"></i> Unduh Excel';
         }
     }
     
