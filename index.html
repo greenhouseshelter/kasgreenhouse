@@ -37,16 +37,6 @@
             z-index: 10;
             background-color: #e5e7eb; /* bg-gray-200 agar tidak tembus */
         }
-
-        /* RAHASIANYA ADA DI SINI: 
-           Overflow-x auto biasanya membuat overflow-y menjadi auto, yang mematikan position: sticky.
-           Dengan memaksa overflow-y: clip, kita bisa scroll horizontal tanpa membuat kontainer scroll vertikal.
-           Sehingga sticky thead kembali nempel ke halaman viewport!
-        */
-        .table-responsive-sticky {
-            overflow-x: auto;
-            overflow-y: clip;
-        }
     </style>
     
 </head>
@@ -74,7 +64,7 @@
 
     <!-- MAIN APP -->
     <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        <!-- Navbar -->
+        <!-- Navbar (Tinggi ditetapkan h-16 / 64px agar sticky bekerja sempurna) -->
         <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between sticky top-0 z-50">
             <div class="flex items-center gap-4">
                 <button id="btnToggleSidebar" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2">
@@ -113,7 +103,7 @@
                 <button onclick="showView('adminLogs')" id="mMenuLogs" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-red-600"><i class="fas fa-history block text-lg mb-1"></i>Log</button>
             </div>
             
-            <!-- Main Content -->
+            <!-- Main Content (Hapus overflow-y-auto agar body yang scroll, sehingga sticky table bekerja) -->
             <main class="flex-1 p-6 pb-24 md:pb-6 min-w-0">
                 
                 <!-- DASHBOARD VIEW -->
@@ -163,8 +153,7 @@
                         </div>
                     </div>
 
-                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky">
+                    <div class="bg-white rounded-lg shadow overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -186,8 +175,7 @@
                 <!-- ADMIN USERS VIEW -->
                 <div id="viewAdminUsers" class="hidden">
                     <h2 class="text-2xl font-bold mb-6">Kelola User & Role</h2>
-                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
+                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -252,8 +240,7 @@
                         <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
                     </div>
                 
-                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
+                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left border-collapse">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -565,7 +552,7 @@
             if(data.status !== 'success') { alert("Gagal mengambil data"); return; } const trans = data.data; if(trans.length === 0) { alert("Tidak ada transaksi pada rentang tanggal ini."); return; }
             const wsData = [["Tanggal", "Project", "Uraian", "Masuk (Rp)", "Keluar (Rp)", "Akun"]]; trans.forEach(t => { wsData.push([new Date(t.Tanggal).toLocaleDateString('id-ID'), t.JenisProject, t.Uraian, Number(t.Masuk) || 0, Number(t.Keluar) || 0, t.Akun]); });
             const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
-            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`;
+            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`; // DIPINDAHKAN KE SINI AGAR TIDAK ERROR
             XLSX.writeFile(wb, fileName);
             logFrontendActivity('Unduh Excel', { startDate: startDate, endDate: endDate, fileName: fileName });            
         } catch (err) { alert("Terjadi kesalahan saat membuat excel."); console.error(err); } 
