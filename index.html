@@ -170,8 +170,8 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- ADMIN LOGS VIEW (BARU) -->
+                
+                <!-- ADMIN LOGS VIEW -->
                 <div id="viewAdminLogs" class="hidden">
                     <h2 class="text-2xl font-bold mb-6 text-red-600"><i class="fas fa-history mr-2"></i>Log Aktivitas Sistem</h2>
                     <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
@@ -799,7 +799,7 @@
       }
     }
 
-    // --- ADMIN: LOG AKTIVITAS (DIPERBARUI: STATUS & DETAIL GABUNGAN) ---
+    // --- ADMIN: LOG AKTIVITAS ---
     async function loadLogs() {
         const tbody = document.getElementById('logsTableBody');
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat Log...</td></tr>`;
@@ -832,7 +832,7 @@
                     ? `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">Berhasil</span>`
                     : `<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">Gagal</span>`;
 
-                // Beautify Details JSON (Error sudah otomatis masuk ke JSON dari backend)
+                // Beautify Details JSON
                 let detailsHtml = '-';
                 if (log.Details) {
                     try {
@@ -858,7 +858,7 @@
             tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error: ${err.message}</td></tr>`;
         }
     }
-
+    
     // --- FUNGSI PUSAT REFRESH DATA ---
     async function refreshData(bulan, tahun, forceRefresh = false) {
         if (cachedTrans.length > 0 && !forceRefresh && currentFetchParams.bulan === bulan && currentFetchParams.tahun === tahun) {
