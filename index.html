@@ -9,6 +9,33 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* Animasi Sidebar saat minimize */
+        #sidebarDesktop {
+            transition: width 0.3s ease, padding 0.3s ease;
+            overflow: hidden; /* Sembunyikan teks yang terpotong saat minimize */
+        }
+        #sidebarDesktop.minimized {
+            width: 68px !important; /* Hanya cukup untuk ikon */
+        }
+        #sidebarDesktop.minimized .sidebar-text {
+            display: none; /* Sembunyikan teks */
+        }
+        #sidebarDesktop.minimized .sidebar-header {
+            justify-content: center; /* Posisikan badge role ke tengah */
+            text-align: center;
+        }
+    
+        /* Sticky Table Header */
+        .sticky-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #e5e7eb; /* bg-gray-200 agar tidak tembus saat scroll */
+        }
+    </style>
+    
 </head>
 <body class="bg-gray-100 text-gray-800">
 
@@ -35,8 +62,15 @@
     <!-- MAIN APP -->
     <div id="mainApp" class="hidden min-h-screen flex flex-col">
         <!-- Navbar -->
-        <nav class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center z-40">
-            <h1 class="text-xl font-bold"><i class="fas fa-wallet text-yellow-400"></i> Kas Greenhouse</h1>
+        <!-- Navbar (Dibuat Sticky) -->
+        <nav class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
+            <div class="flex items-center gap-4">
+                <!-- Tombol Minimize Sidebar (Hanya muncul di Desktop) -->
+                <button id="btnToggleSidebar" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="text-xl font-bold"><i class="fas fa-wallet text-yellow-400"></i> Kas Greenhouse</h1>
+            </div>
             <div class="flex items-center gap-4">
                 <span id="userInfo" class="text-sm hidden md:block"></span>
                 <button onclick="signOut()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">Keluar</button>
@@ -44,22 +78,23 @@
         </nav>
 
         <div class="flex flex-1">
-            <!-- Sidebar Desktop -->
-            <aside class="w-64 bg-white shadow-lg hidden md:block border-r">
-                <div class="p-4 border-b">
-                    <p class="text-xs text-gray-500">Login sebagai:</p>
-                    <p id="userRoleBadge" class="font-bold text-yellow-600"></p>
+            <!-- Sidebar Desktop (Sticky & Minimizable) -->
+            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col sticky top-16 h-[calc(100vh-4rem)] border-r z-40">
+                <div class="p-4 border-b sidebar-header flex items-center justify-between">
+                    <p class="text-xs text-gray-500 sidebar-text">Login sebagai:</p>
+                    <p id="userRoleBadge" class="font-bold text-yellow-600 sidebar-text">ADMIN</p>
                 </div>
+
                 <ul class="p-4 space-y-2">
-                    <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-chart-pie mr-2"></i> Dashboard</button></li>
-                    <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100"><i class="fas fa-list mr-2"></i> Transaksi</button></li>
-                    <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-users-cog mr-2"></i> Kelola User</button></li>
-                    <li id="menuOptions" class="hidden"><button onclick="showView('adminOptions')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600"><i class="fas fa-cogs mr-2"></i> Kelola Opsi</button></li>
-                    <li id="menuLogs" class="hidden"><button onclick="showView('adminLogs')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-red-600"><i class="fas fa-history mr-2"></i> Log Aktivitas</button></li>
+                    <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-chart-pie w-5 text-center"></i><span class="sidebar-text">Dashboard</span></button></li>
+                    <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-list w-5 text-center"></i><span class="sidebar-text">Transaksi</span></button></li>
+                    <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600 flex items-center gap-3"><i class="fas fa-users-cog w-5 text-center"></i><span class="sidebar-text">Kelola User</span></button></li>
+                    <li id="menuOptions" class="hidden"><button onclick="showView('adminOptions')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600 flex items-center gap-3"><i class="fas fa-cogs w-5 text-center"></i><span class="sidebar-text">Kelola Opsi</span></button></li>
+                    <li id="menuLogs" class="hidden"><button onclick="showView('adminLogs')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-red-600 flex items-center gap-3"><i class="fas fa-history w-5 text-center"></i><span class="sidebar-text">Log Aktivitas</span></button></li>
                 </ul>
             </aside>
             
-            <!-- Mobile Bottom Nav -->
+            <!-- Mobile Bottom Nav (Tetap di bawah) -->
             <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around z-50 overflow-x-auto">
                 <button onclick="showView('dashboard')" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-chart-pie block text-lg mb-1"></i>Dash</button>
                 <button onclick="showView('transactions')" id="mMenuTransaksi" class="flex-1 p-3 text-center text-xs hover:bg-gray-100"><i class="fas fa-list block text-lg mb-1"></i>Transaksi</button>
@@ -120,16 +155,16 @@
 
                     <div class="bg-white rounded-lg shadow overflow-x-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead>
+                            <thead class="sticky top-0 z-10">
                                 <tr class="bg-gray-200 text-sm text-gray-700">
-                                    <th class="p-3 border">Tanggal</th>
-                                    <th class="p-3 border">Project</th>
-                                    <th class="p-3 border">Uraian</th>
-                                    <th class="p-3 border text-right">Masuk</th>
-                                    <th class="p-3 border text-right">Keluar</th>
-                                    <th class="p-3 border">Akun</th>
-                                    <th class="p-3 border">Bukti</th>
-                                    <th class="p-3 border text-center">Aksi</th>
+                                    <th class="p-3 border bg-gray-200">Tanggal</th>
+                                    <th class="p-3 border bg-gray-200">Project</th>
+                                    <th class="p-3 border bg-gray-200">Uraian</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Masuk</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Keluar</th>
+                                    <th class="p-3 border bg-gray-200">Akun</th>
+                                    <th class="p-3 border bg-gray-200">Bukti</th>
+                                    <th class="p-3 border bg-gray-200 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody"></tbody>
@@ -142,7 +177,14 @@
                     <h2 class="text-2xl font-bold mb-6">Kelola User & Role</h2>
                     <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left">
-                            <thead><tr class="bg-gray-200"><th class="p-2 border">Email</th><th class="p-2 border">Nama</th><th class="p-2 border">Role Saat Ini</th><th class="p-2 border">Aksi</th></tr></thead>
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-gray-200">
+                                    <th class="p-2 border bg-gray-200">Email</th>
+                                    <th class="p-2 border bg-gray-200">Nama</th>
+                                    <th class="p-2 border bg-gray-200">Role Saat Ini</th>
+                                    <th class="p-2 border bg-gray-200">Aksi</th>
+                                </tr>
+                            </thead>
                             <tbody id="usersTableBody"></tbody>
                         </table>
                     </div>
@@ -202,13 +244,13 @@
                     <!-- Tabel Log -->
                     <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left border-collapse">
-                            <thead>
+                            <thead class="sticky top-0 z-10">
                                 <tr class="bg-gray-200 text-sm text-gray-700">
-                                    <th class="p-3 border">Waktu</th>
-                                    <th class="p-3 border">User</th>
-                                    <th class="p-3 border">Kegiatan</th>
-                                    <th class="p-3 border">Status</th>
-                                    <th class="p-3 border">Detail Variabel</th>
+                                    <th class="p-3 border bg-gray-200">Waktu</th>
+                                    <th class="p-3 border bg-gray-200">User</th>
+                                    <th class="p-3 border bg-gray-200">Kegiatan</th>
+                                    <th class="p-3 border bg-gray-200">Status</th>
+                                    <th class="p-3 border bg-gray-200">Detail Variabel</th>
                                 </tr>
                             </thead>
                             <tbody id="logsTableBody">
@@ -286,6 +328,12 @@
     let cachedTrans = []; 
     let currentFetchParams = {}; 
 
+    // --- TOGGLE SIDEBAR MINIMIZE ---
+    document.getElementById('btnToggleSidebar').addEventListener('click', function() {
+        const sidebar = document.getElementById('sidebarDesktop');
+        sidebar.classList.toggle('minimized');
+    });
+    
     // --- FUNGSI HELPER UNTUK LOG FRONTEND ---
     function logFrontendActivity(activityName, detailsObj) {
         if (!currentUser || !currentUser.email) return; // Jangan log jika belum login
