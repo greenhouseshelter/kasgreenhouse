@@ -12,19 +12,19 @@
 
     <!-- TAMBAHAN CSS UNTUK FREEZE HEADER LOG -->
     <style>
-        .log-table-container {
-            max-height: 65vh; /* Batas tinggi tabel 65% dari layar */
+        /* Freeze Header & Scroll untuk Tabel */
+        .freeze-table-container {
+            max-height: 65vh; /* Batas tinggi tabel adalah 65% dari tinggi layar */
             overflow-y: auto; /* Scroll vertikal jika data panjang */
             overflow-x: auto; /* Scroll horizontal jika tabel lebar di HP */
         }
-        .log-table-container thead th {
+        .freeze-table-container thead th {
             position: sticky;
             top: 0;
             z-index: 10;
             background-color: #e5e7eb; /* Warna abu-abu agar teks tidak tembus saat di-scroll */
         }
-    </style>
-    
+    </style>    
 </head>
 <body class="bg-gray-100 text-gray-800">
 
@@ -135,23 +135,24 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <div class="bg-white rounded-lg shadow freeze-table-container">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-gray-200 text-sm text-gray-700">
-                                    <th class="p-3 border">Tanggal</th>
-                                    <th class="p-3 border">Project</th>
-                                    <th class="p-3 border">Uraian</th>
-                                    <th class="p-3 border text-right">Masuk</th>
-                                    <th class="p-3 border text-right">Keluar</th>
-                                    <th class="p-3 border">Akun</th>
-                                    <th class="p-3 border">Bukti</th>
-                                    <th class="p-3 border text-center">Aksi</th>
+                                <tr class="text-sm text-gray-700">
+                                    <th class="p-3 border bg-gray-200">Tanggal</th>
+                                    <th class="p-3 border bg-gray-200">Project</th>
+                                    <th class="p-3 border bg-gray-200">Uraian</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Masuk</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Keluar</th>
+                                    <th class="p-3 border bg-gray-200">Akun</th>
+                                    <th class="p-3 border bg-gray-200">Bukti</th>
+                                    <th class="p-3 border bg-gray-200 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody"></tbody>
                         </table>
-                    </div>
+                    </div>                    
+
                 </div>
 
                 <!-- ADMIN USERS VIEW -->
@@ -217,8 +218,8 @@
                         <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
                     </div>
                 
-                    <!-- UBAHAN: menggunakan log-table-container dan bg-gray-200 di th -->
-                    <div class="bg-white rounded-lg shadow log-table-container">
+                    <!-- UBAHAN: menggunakan freeze-table-container dan bg-gray-200 di th -->
+                    <div class="bg-white rounded-lg shadow freeze-table-container">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="text-sm text-gray-700">
