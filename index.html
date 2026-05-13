@@ -11,14 +11,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* RAHASIA STICKY HEADER: 
-           Overflow-x auto biasanya membuat overflow-y menjadi auto, 
-           yang mematikan position: sticky. 
-           Dengan overflow-y: clip, sticky thead kembali berfungsi! */
-        .table-responsive-sticky {
-            overflow-x: auto;
-            overflow-y: clip;
-        }
         /* Animasi Sidebar saat minimize */
         #sidebarDesktop {
             transition: width 0.3s ease;
@@ -38,13 +30,6 @@
             justify-content: center; /* Posisikan ikon ke tengah */
         }
 
-        /* Sticky Table Header agar nempel di bawah Navbar */
-        .sticky-table-head th {
-            position: sticky;
-            top: 64px; /* Ketinggian Navbar (h-16 = 64px) */
-            z-index: 10;
-            background-color: #e5e7eb; /* bg-gray-200 agar tidak tembus */
-        }
     </style>
     
 </head>
@@ -71,9 +56,9 @@
     </div>
 
     <!-- MAIN APP -->
-    <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        <!-- Navbar (Tinggi ditetapkan h-16 / 64px agar sticky bekerja sempurna) -->
-        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between sticky top-0 z-50">
+    <div id="mainApp" class="hidden h-screen flex flex-col overflow-hidden">
+        <!-- Navbar (Tidak perlu sticky lagi karena layout dikunci) -->
+        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between flex-shrink-0 z-50">
             <div class="flex items-center gap-4">
                 <button id="btnToggleSidebar" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2">
                     <i class="fas fa-bars"></i>
@@ -86,9 +71,9 @@
             </div>
         </nav>
 
-        <div class="flex flex-1">
-            <!-- Sidebar Desktop (Sticky & Minimizable) -->
-            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col sticky top-16 h-[calc(100vh-4rem)] border-r z-40">
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Desktop (Hapus sticky, gunakan overflow-y-auto) -->
+            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col flex-shrink-0 border-r overflow-y-auto">
                 <div class="p-4 border-b h-16 flex items-center justify-center sidebar-header">
                     <p id="userRoleBadge" class="font-bold text-yellow-600 sidebar-text">ADMIN</p>
                 </div>
@@ -111,8 +96,8 @@
                 <button onclick="showView('adminLogs')" id="mMenuLogs" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-red-600"><i class="fas fa-history block text-lg mb-1"></i>Log</button>
             </div>
             
-            <!-- Main Content (Hapus overflow-y-auto agar body yang scroll, sehingga sticky table bekerja) -->
-            <main class="flex-1 p-6 pb-24 md:pb-6 min-w-0">
+            <!-- Main Content (Ini yang jadi scroll container utama) -->
+            <main class="flex-1 overflow-y-auto p-6 pb-24 md:pb-6 min-w-0">
                 
                 <!-- DASHBOARD VIEW -->
                 <div id="viewDashboard">
@@ -161,18 +146,20 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky">
+                    <!-- KEMBALI KE OVERFLOW-X-AUTO, STICKY AKAN KERJA KARENA MAIN YANG SCROLL -->
+                    <div class="bg-white rounded-lg shadow overflow-x-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead class="sticky-table-head">
+                            <!-- HEADER LANGSUNG DIBUAT STICKY TOP-0 -->
+                            <thead class="sticky top-0 z-10">
                                 <tr class="text-sm text-gray-700">
-                                    <th class="p-3 border">Tanggal</th>
-                                    <th class="p-3 border">Project</th>
-                                    <th class="p-3 border">Uraian</th>
-                                    <th class="p-3 border text-right">Masuk</th>
-                                    <th class="p-3 border text-right">Keluar</th>
-                                    <th class="p-3 border">Akun</th>
-                                    <th class="p-3 border">Bukti</th>
-                                    <th class="p-3 border text-center">Aksi</th>
+                                    <th class="p-3 border bg-gray-200">Tanggal</th>
+                                    <th class="p-3 border bg-gray-200">Project</th>
+                                    <th class="p-3 border bg-gray-200">Uraian</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Masuk</th>
+                                    <th class="p-3 border bg-gray-200 text-right">Keluar</th>
+                                    <th class="p-3 border bg-gray-200">Akun</th>
+                                    <th class="p-3 border bg-gray-200">Bukti</th>
+                                    <th class="p-3 border bg-gray-200 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody"></tbody>
@@ -183,14 +170,14 @@
                 <!-- ADMIN USERS VIEW -->
                 <div id="viewAdminUsers" class="hidden">
                     <h2 class="text-2xl font-bold mb-6">Kelola User & Role</h2>
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
+                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left">
-                            <thead class="sticky-table-head">
+                            <thead class="sticky top-0 z-10">
                                 <tr class="text-sm text-gray-700">
-                                    <th class="p-2 border">Email</th>
-                                    <th class="p-2 border">Nama</th>
-                                    <th class="p-2 border">Role Saat Ini</th>
-                                    <th class="p-2 border">Aksi</th>
+                                    <th class="p-2 border bg-gray-200">Email</th>
+                                    <th class="p-2 border bg-gray-200">Nama</th>
+                                    <th class="p-2 border bg-gray-200">Role Saat Ini</th>
+                                    <th class="p-2 border bg-gray-200">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="usersTableBody"></tbody>
@@ -248,15 +235,15 @@
                         <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
                     </div>
                 
-                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
+                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
                         <table class="w-full text-left border-collapse">
-                            <thead class="sticky-table-head">
+                            <thead class="sticky top-0 z-10">
                                 <tr class="text-sm text-gray-700">
-                                    <th class="p-3 border">Waktu</th>
-                                    <th class="p-3 border">User</th>
-                                    <th class="p-3 border">Kegiatan</th>
-                                    <th class="p-3 border">Status</th>
-                                    <th class="p-3 border">Detail Variabel</th>
+                                    <th class="p-3 border bg-gray-200">Waktu</th>
+                                    <th class="p-3 border bg-gray-200">User</th>
+                                    <th class="p-3 border bg-gray-200">Kegiatan</th>
+                                    <th class="p-3 border bg-gray-200">Status</th>
+                                    <th class="p-3 border bg-gray-200">Detail Variabel</th>
                                 </tr>
                             </thead>
                             <tbody id="logsTableBody">
@@ -269,7 +256,7 @@
             </main>
         </div>
     </div>
-
+    
     <!-- MODAL INPUT/EDIT TRANSAKSI -->
     <div id="modalTransaksi" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
