@@ -43,7 +43,7 @@
 <body class="bg-gray-100 text-gray-800 h-screen flex flex-col">
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-slate-900">
+    <div id="loginScreen" class="h-full w-full flex items-center justify-center bg-slate-900">
         <div class="bg-white p-8 rounded-xl shadow-2xl text-center w-96">
             <h1 class="text-3xl font-bold mb-2 text-slate-800"><i class="fas fa-wallet text-yellow-500"></i> Kas Greenhouse</h1>
             <p class="text-gray-500 mb-6">Pencatatan Keuangan Project</p>
@@ -53,7 +53,7 @@
     </div>
 
     <!-- WAITING SCREEN -->
-    <div id="waitingScreen" class="hidden min-h-screen flex items-center justify-center bg-yellow-50">
+    <div id="waitingScreen" class="hidden h-full w-full flex items-center justify-center bg-yellow-50">
         <div class="bg-white p-8 rounded-xl shadow-xl text-center w-96 border-t-4 border-yellow-500">
             <i class="fas fa-clock text-5xl text-yellow-500 mb-4"></i>
             <h2 class="text-2xl font-bold mb-2">Menunggu Persetujuan</h2>
@@ -337,7 +337,7 @@
     function logFrontendActivity(activityName, detailsObj) {
         if (!currentUser || !currentUser.email) return; 
         const payload = { action: 'logActivity', email: currentUser.email, activityName: activityName, details: JSON.stringify(detailsObj) };
-        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error("Log Error:", e));
     }
     
     // --- AUTENTIKASI GOOGLE ---
@@ -346,8 +346,17 @@
         fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email: responsePayload.email, name: responsePayload.name }) })
         .then(res => res.json())
         .then(res => {
-            if(res.status === 'success') { currentUser = res.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); initApp(); } 
-            else { alert(res.message); }
+            if(res.status === 'success') { 
+                currentUser = res.data; 
+                localStorage.setItem('kasUser', JSON.stringify(currentUser)); 
+                initApp(); 
+            } else { 
+                alert("Login Gagal: " + (res.message || 'Akun belum diizinkan.')); 
+            }
+        })
+        .catch(err => {
+            console.error("Login Network Error:", err);
+            alert("Gagal terhubung ke server. Coba lagi nanti.");
         });
     }
 
@@ -359,8 +368,11 @@
 
     function signOut() {
         logFrontendActivity('Logout', {});
-        google.accounts.id.disableAutoSelect(); localStorage.removeItem('kasUser'); currentUser = null;
-        document.getElementById('mainApp').classList.add('hidden'); document.getElementById('waitingScreen').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden');
+        try { if(google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch(e) {}
+        localStorage.removeItem('kasUser'); currentUser = null;
+        document.getElementById('mainApp').classList.add('hidden'); 
+        document.getElementById('waitingScreen').classList.add('hidden'); 
+        document.getElementById('loginScreen').classList.remove('hidden');
     }
 
     // --- INISIALISASI APLIKASI ---
@@ -564,7 +576,16 @@
     
     window.onload = async () => {
         const saved = localStorage.getItem('kasUser');
-        if(saved) { currentUser = JSON.parse(saved); try { const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'verifySession', email: currentUser.email, name: currentUser.name }) }); const data = await res.json(); if(data.status === 'success') { currentUser = data.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); } else { signOut(); return; } } catch(e) { console.error("Gagal verifikasi session", e); } initApp(); }
+        if(saved) { 
+            currentUser = JSON.parse(saved); 
+            try { 
+                const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'verifySession', email: currentUser.email, name: currentUser.name }) }); 
+                const data = await res.json(); 
+                if(data.status === 'success') { currentUser = data.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); } 
+                else { signOut(); return; } 
+            } catch(e) { console.error("Gagal verifikasi session", e); } 
+            initApp(); 
+        }
     };
 </script>
 </body>
