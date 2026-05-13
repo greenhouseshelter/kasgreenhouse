@@ -15,24 +15,37 @@
         #sidebarDesktop {
             transition: width 0.3s ease;
             overflow: hidden;
-            white-space: nowrap;
+            white-space: nowrap; /* Cegah teks turun ke bawah saat minimize */
         }
         #sidebarDesktop.minimized {
-            width: 64px !important; /* Hanya cukup untuk ikon */
+            width: 68px !important; /* Hanya cukup untuk ikon */
         }
         #sidebarDesktop.minimized .sidebar-text {
-            opacity: 0;
-            width: 0;
-            display: inline-block;
-            overflow: hidden;
+            display: none; /* Sembunyikan teks */
+        }
+        #sidebarDesktop.minimized .sidebar-header-text {
+            display: none;
+        }
+        #sidebarDesktop.minimized .sidebar-header {
+            justify-content: center; /* Posisikan ikon ke tengah */
         }
 
-        /* Sticky Table Header */
+        /* Sticky Table Header agar nempel di bawah Navbar */
         .sticky-table-head th {
             position: sticky;
-            top: 0;
+            top: 64px; /* Ketinggian Navbar (h-16 = 64px) */
             z-index: 10;
-            background-color: #e5e7eb; /* bg-gray-200 */
+            background-color: #e5e7eb; /* bg-gray-200 agar tidak tembus */
+        }
+
+        /* RAHASIANYA ADA DI SINI: 
+           Overflow-x auto biasanya membuat overflow-y menjadi auto, yang mematikan position: sticky.
+           Dengan memaksa overflow-y: clip, kita bisa scroll horizontal tanpa membuat kontainer scroll vertikal.
+           Sehingga sticky thead kembali nempel ke halaman viewport!
+        */
+        .table-responsive-sticky {
+            overflow-x: auto;
+            overflow-y: clip;
         }
     </style>
     
@@ -60,13 +73,11 @@
     </div>
 
     <!-- MAIN APP -->
-    <!-- h-screen flex flex-col overflow-hidden memastikan Navbar nempel, Sidebar nempel, dan hanya Main yang scroll -->
-    <div id="mainApp" class="hidden h-screen flex flex-col overflow-hidden">
-        
-        <!-- Navbar (Tidak akan ikut scroll) -->
-        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between flex-shrink-0 z-50">
+    <div id="mainApp" class="hidden min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between sticky top-0 z-50">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2" title="Minimize Menu">
+                <button id="btnToggleSidebar" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="text-xl font-bold"><i class="fas fa-wallet text-yellow-400"></i> Kas Greenhouse</h1>
@@ -77,16 +88,14 @@
             </div>
         </nav>
 
-        <!-- Wrapper Sidebar & Main Content -->
-        <div class="flex flex-1 overflow-hidden">
-            
-            <!-- Sidebar Desktop -->
-            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col flex-shrink-0 border-r z-40">
-                <div class="p-4 border-b h-16 flex items-center justify-center">
+        <div class="flex flex-1">
+            <!-- Sidebar Desktop (Sticky & Minimizable) -->
+            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col sticky top-16 h-[calc(100vh-4rem)] border-r z-40">
+                <div class="p-4 border-b h-16 flex items-center justify-center sidebar-header">
                     <p id="userRoleBadge" class="font-bold text-yellow-600 sidebar-text">ADMIN</p>
                 </div>
 
-                <ul class="p-4 space-y-2 flex-1 overflow-y-auto">
+                <ul class="p-4 space-y-2">
                     <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-chart-pie w-7 text-center"></i><span class="sidebar-text">Dashboard</span></button></li>
                     <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-list w-7 text-center"></i><span class="sidebar-text">Transaksi</span></button></li>
                     <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600 flex items-center gap-3"><i class="fas fa-users-cog w-7 text-center"></i><span class="sidebar-text">Kelola User</span></button></li>
@@ -104,8 +113,8 @@
                 <button onclick="showView('adminLogs')" id="mMenuLogs" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-red-600"><i class="fas fa-history block text-lg mb-1"></i>Log</button>
             </div>
             
-            <!-- Main Content (Hanya area ini yang bisa scroll ke bawah) -->
-            <main class="flex-1 p-6 overflow-y-auto pb-24 md:pb-6 min-w-0">
+            <!-- Main Content -->
+            <main class="flex-1 p-6 pb-24 md:pb-6 min-w-0">
                 
                 <!-- DASHBOARD VIEW -->
                 <div id="viewDashboard">
@@ -154,7 +163,8 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
+                    <div class="bg-white rounded-lg shadow table-responsive-sticky">
                         <table class="w-full text-left border-collapse">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -176,7 +186,8 @@
                 <!-- ADMIN USERS VIEW -->
                 <div id="viewAdminUsers" class="hidden">
                     <h2 class="text-2xl font-bold mb-6">Kelola User & Role</h2>
-                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
+                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
+                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
                         <table class="w-full text-left">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -241,7 +252,8 @@
                         <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
                     </div>
                 
-                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
+                    <!-- UBAH: overflow-x-auto DIHILANGKAN, diganti table-responsive-sticky -->
+                    <div class="bg-white rounded-lg shadow table-responsive-sticky p-6">
                         <table class="w-full text-left border-collapse">
                             <thead class="sticky-table-head">
                                 <tr class="text-sm text-gray-700">
@@ -326,41 +338,27 @@
     let currentFetchParams = {}; 
 
     // --- TOGGLE SIDEBAR MINIMIZE ---
-    function toggleSidebar() {
+    document.getElementById('btnToggleSidebar').addEventListener('click', function() {
         const sidebar = document.getElementById('sidebarDesktop');
         sidebar.classList.toggle('minimized');
-    }
+    });
     
     // --- FUNGSI HELPER UNTUK LOG FRONTEND ---
     function logFrontendActivity(activityName, detailsObj) {
         if (!currentUser || !currentUser.email) return; 
         const payload = { action: 'logActivity', email: currentUser.email, activityName: activityName, details: JSON.stringify(detailsObj) };
-        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error("Log Error:", e));
+        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
     }
     
     // --- AUTENTIKASI GOOGLE ---
     function handleGoogleLogin(response) {
-        try {
-            const responsePayload = jwt_decode(response.credential);
-            fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email: responsePayload.email, name: responsePayload.name }) })
-            .then(res => res.json())
-            .then(res => {
-                if(res.status === 'success') { 
-                    currentUser = res.data; 
-                    localStorage.setItem('kasUser', JSON.stringify(currentUser)); 
-                    initApp(); 
-                } else { 
-                    alert("Login Gagal: " + (res.message || 'Akun belum diizinkan.')); 
-                }
-            })
-            .catch(err => {
-                console.error("Login Network Error:", err);
-                alert("Gagal terhubung ke server. Cek koneksi internet Anda.");
-            });
-        } catch (error) {
-            console.error("Error decoding token:", error);
-            alert("Terjadi kesalahan format login. Coba lagi.");
-        }
+        const responsePayload = jwt_decode(response.credential);
+        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email: responsePayload.email, name: responsePayload.name }) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === 'success') { currentUser = res.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); initApp(); } 
+            else { alert(res.message); }
+        });
     }
 
     function jwt_decode (token) {
@@ -371,11 +369,8 @@
 
     function signOut() {
         logFrontendActivity('Logout', {});
-        try { if(google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch(e) {}
-        localStorage.removeItem('kasUser'); currentUser = null;
-        document.getElementById('mainApp').classList.add('hidden'); 
-        document.getElementById('waitingScreen').classList.add('hidden'); 
-        document.getElementById('loginScreen').classList.remove('hidden');
+        google.accounts.id.disableAutoSelect(); localStorage.removeItem('kasUser'); currentUser = null;
+        document.getElementById('mainApp').classList.add('hidden'); document.getElementById('waitingScreen').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden');
     }
 
     // --- INISIALISASI APLIKASI ---
@@ -570,7 +565,7 @@
             if(data.status !== 'success') { alert("Gagal mengambil data"); return; } const trans = data.data; if(trans.length === 0) { alert("Tidak ada transaksi pada rentang tanggal ini."); return; }
             const wsData = [["Tanggal", "Project", "Uraian", "Masuk (Rp)", "Keluar (Rp)", "Akun"]]; trans.forEach(t => { wsData.push([new Date(t.Tanggal).toLocaleDateString('id-ID'), t.JenisProject, t.Uraian, Number(t.Masuk) || 0, Number(t.Keluar) || 0, t.Akun]); });
             const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
-            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`; 
+            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`;
             XLSX.writeFile(wb, fileName);
             logFrontendActivity('Unduh Excel', { startDate: startDate, endDate: endDate, fileName: fileName });            
         } catch (err) { alert("Terjadi kesalahan saat membuat excel."); console.error(err); } 
@@ -579,16 +574,7 @@
     
     window.onload = async () => {
         const saved = localStorage.getItem('kasUser');
-        if(saved) { 
-            currentUser = JSON.parse(saved); 
-            try { 
-                const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'verifySession', email: currentUser.email, name: currentUser.name }) }); 
-                const data = await res.json(); 
-                if(data.status === 'success') { currentUser = data.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); } 
-                else { signOut(); return; } 
-            } catch(e) { console.error("Gagal verifikasi session", e); } 
-            initApp(); 
-        }
+        if(saved) { currentUser = JSON.parse(saved); try { const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'verifySession', email: currentUser.email, name: currentUser.name }) }); const data = await res.json(); if(data.status === 'success') { currentUser = data.data; localStorage.setItem('kasUser', JSON.stringify(currentUser)); } else { signOut(); return; } } catch(e) { console.error("Gagal verifikasi session", e); } initApp(); }
     };
 </script>
 </body>
