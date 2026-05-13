@@ -11,36 +11,36 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
+        /* Layout Kunci Desktop App */
+        html, body { height: 100%; overflow: hidden; }
+        
         /* Animasi Sidebar saat minimize */
         #sidebarDesktop {
             transition: width 0.3s ease;
             overflow: hidden;
-            white-space: nowrap; /* Cegah teks turun ke bawah saat minimize */
+            white-space: nowrap;
         }
         #sidebarDesktop.minimized {
-            width: 68px !important; /* Hanya cukup untuk ikon */
+            width: 64px !important; /* Hanya cukup untuk ikon */
         }
         #sidebarDesktop.minimized .sidebar-text {
-            display: none; /* Sembunyikan teks */
-        }
-        #sidebarDesktop.minimized .sidebar-header-text {
-            display: none;
-        }
-        #sidebarDesktop.minimized .sidebar-header {
-            justify-content: center; /* Posisikan ikon ke tengah */
+            opacity: 0;
+            width: 0;
+            display: inline-block;
+            overflow: hidden;
         }
 
-        /* Sticky Table Header agar nempel di bawah Navbar */
+        /* Sticky Table Header agar nempel di atas area konten */
         .sticky-table-head th {
             position: sticky;
-            top: 64px; /* Ketinggian Navbar (h-16 = 64px) */
+            top: 0;
             z-index: 10;
-            background-color: #e5e7eb; /* bg-gray-200 agar tidak tembus */
+            background-color: #e5e7eb; /* bg-gray-200 */
         }
     </style>
     
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-800 h-screen flex flex-col">
 
     <!-- LOGIN SCREEN -->
     <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-slate-900">
@@ -63,11 +63,12 @@
     </div>
 
     <!-- MAIN APP -->
-    <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        <!-- Navbar (Tinggi ditetapkan h-16 / 64px agar sticky bekerja sempurna) -->
-        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between sticky top-0 z-50">
+    <div id="mainApp" class="hidden h-full flex flex-col">
+        
+        <!-- Navbar (Tidak akan ikut scroll) -->
+        <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between flex-shrink-0 z-50">
             <div class="flex items-center gap-4">
-                <button id="btnToggleSidebar" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2">
+                <button onclick="toggleSidebar()" class="hidden md:block text-white hover:text-yellow-400 text-xl mr-2" title="Minimize Menu">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="text-xl font-bold"><i class="fas fa-wallet text-yellow-400"></i> Kas Greenhouse</h1>
@@ -78,14 +79,16 @@
             </div>
         </nav>
 
-        <div class="flex flex-1">
-            <!-- Sidebar Desktop (Sticky & Minimizable) -->
-            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col sticky top-16 h-[calc(100vh-4rem)] border-r z-40">
-                <div class="p-4 border-b h-16 flex items-center justify-center sidebar-header">
+        <!-- Wrapper Sidebar & Main Content -->
+        <div class="flex flex-1 overflow-hidden">
+            
+            <!-- Sidebar Desktop -->
+            <aside id="sidebarDesktop" class="w-64 bg-white shadow-lg hidden md:flex flex-col flex-shrink-0 border-r z-40">
+                <div class="p-4 border-b h-16 flex items-center justify-center">
                     <p id="userRoleBadge" class="font-bold text-yellow-600 sidebar-text">ADMIN</p>
                 </div>
 
-                <ul class="p-4 space-y-2">
+                <ul class="p-4 space-y-2 flex-1 overflow-y-auto">
                     <li><button onclick="showView('dashboard')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-chart-pie w-7 text-center"></i><span class="sidebar-text">Dashboard</span></button></li>
                     <li id="menuTransaksi"><button onclick="showView('transactions')" class="w-full text-left p-2 rounded hover:bg-gray-100 flex items-center gap-3"><i class="fas fa-list w-7 text-center"></i><span class="sidebar-text">Transaksi</span></button></li>
                     <li id="menuUsers" class="hidden"><button onclick="showView('adminUsers')" class="w-full text-left p-2 rounded hover:bg-gray-100 text-purple-600 flex items-center gap-3"><i class="fas fa-users-cog w-7 text-center"></i><span class="sidebar-text">Kelola User</span></button></li>
@@ -103,8 +106,8 @@
                 <button onclick="showView('adminLogs')" id="mMenuLogs" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-red-600"><i class="fas fa-history block text-lg mb-1"></i>Log</button>
             </div>
             
-            <!-- Main Content (Hapus overflow-y-auto agar body yang scroll, sehingga sticky table bekerja) -->
-            <main class="flex-1 p-6 pb-24 md:pb-6 min-w-0">
+            <!-- Main Content (Hanya area ini yang bisa scroll) -->
+            <main class="flex-1 p-6 overflow-y-auto pb-24 md:pb-6 min-w-0">
                 
                 <!-- DASHBOARD VIEW -->
                 <div id="viewDashboard">
@@ -325,10 +328,10 @@
     let currentFetchParams = {}; 
 
     // --- TOGGLE SIDEBAR MINIMIZE ---
-    document.getElementById('btnToggleSidebar').addEventListener('click', function() {
+    function toggleSidebar() {
         const sidebar = document.getElementById('sidebarDesktop');
         sidebar.classList.toggle('minimized');
-    });
+    }
     
     // --- FUNGSI HELPER UNTUK LOG FRONTEND ---
     function logFrontendActivity(activityName, detailsObj) {
@@ -552,7 +555,7 @@
             if(data.status !== 'success') { alert("Gagal mengambil data"); return; } const trans = data.data; if(trans.length === 0) { alert("Tidak ada transaksi pada rentang tanggal ini."); return; }
             const wsData = [["Tanggal", "Project", "Uraian", "Masuk (Rp)", "Keluar (Rp)", "Akun"]]; trans.forEach(t => { wsData.push([new Date(t.Tanggal).toLocaleDateString('id-ID'), t.JenisProject, t.Uraian, Number(t.Masuk) || 0, Number(t.Keluar) || 0, t.Akun]); });
             const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
-            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`; // DIPINDAHKAN KE SINI AGAR TIDAK ERROR
+            const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`; 
             XLSX.writeFile(wb, fileName);
             logFrontendActivity('Unduh Excel', { startDate: startDate, endDate: endDate, fileName: fileName });            
         } catch (err) { alert("Terjadi kesalahan saat membuat excel."); console.error(err); } 
