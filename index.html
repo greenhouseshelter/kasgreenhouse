@@ -11,9 +11,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* Layout Kunci Desktop App */
-        html, body { height: 100%; overflow: hidden; }
-        
         /* Animasi Sidebar saat minimize */
         #sidebarDesktop {
             transition: width 0.3s ease;
@@ -30,7 +27,7 @@
             overflow: hidden;
         }
 
-        /* Sticky Table Header agar nempel di atas area konten */
+        /* Sticky Table Header */
         .sticky-table-head th {
             position: sticky;
             top: 0;
@@ -40,10 +37,10 @@
     </style>
     
 </head>
-<body class="bg-gray-100 text-gray-800 h-screen flex flex-col">
+<body class="bg-gray-100 text-gray-800">
 
     <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="h-full w-full flex items-center justify-center bg-slate-900">
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-slate-900">
         <div class="bg-white p-8 rounded-xl shadow-2xl text-center w-96">
             <h1 class="text-3xl font-bold mb-2 text-slate-800"><i class="fas fa-wallet text-yellow-500"></i> Kas Greenhouse</h1>
             <p class="text-gray-500 mb-6">Pencatatan Keuangan Project</p>
@@ -53,7 +50,7 @@
     </div>
 
     <!-- WAITING SCREEN -->
-    <div id="waitingScreen" class="hidden h-full w-full flex items-center justify-center bg-yellow-50">
+    <div id="waitingScreen" class="hidden min-h-screen flex items-center justify-center bg-yellow-50">
         <div class="bg-white p-8 rounded-xl shadow-xl text-center w-96 border-t-4 border-yellow-500">
             <i class="fas fa-clock text-5xl text-yellow-500 mb-4"></i>
             <h2 class="text-2xl font-bold mb-2">Menunggu Persetujuan</h2>
@@ -63,7 +60,8 @@
     </div>
 
     <!-- MAIN APP -->
-    <div id="mainApp" class="hidden h-full flex flex-col">
+    <!-- h-screen flex flex-col overflow-hidden memastikan Navbar nempel, Sidebar nempel, dan hanya Main yang scroll -->
+    <div id="mainApp" class="hidden h-screen flex flex-col overflow-hidden">
         
         <!-- Navbar (Tidak akan ikut scroll) -->
         <nav class="bg-slate-900 text-white px-4 h-16 flex items-center shadow-md justify-between flex-shrink-0 z-50">
@@ -106,7 +104,7 @@
                 <button onclick="showView('adminLogs')" id="mMenuLogs" class="hidden flex-1 p-3 text-center text-xs hover:bg-gray-100 text-red-600"><i class="fas fa-history block text-lg mb-1"></i>Log</button>
             </div>
             
-            <!-- Main Content (Hanya area ini yang bisa scroll) -->
+            <!-- Main Content (Hanya area ini yang bisa scroll ke bawah) -->
             <main class="flex-1 p-6 overflow-y-auto pb-24 md:pb-6 min-w-0">
                 
                 <!-- DASHBOARD VIEW -->
@@ -342,22 +340,27 @@
     
     // --- AUTENTIKASI GOOGLE ---
     function handleGoogleLogin(response) {
-        const responsePayload = jwt_decode(response.credential);
-        fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email: responsePayload.email, name: responsePayload.name }) })
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === 'success') { 
-                currentUser = res.data; 
-                localStorage.setItem('kasUser', JSON.stringify(currentUser)); 
-                initApp(); 
-            } else { 
-                alert("Login Gagal: " + (res.message || 'Akun belum diizinkan.')); 
-            }
-        })
-        .catch(err => {
-            console.error("Login Network Error:", err);
-            alert("Gagal terhubung ke server. Coba lagi nanti.");
-        });
+        try {
+            const responsePayload = jwt_decode(response.credential);
+            fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'login', email: responsePayload.email, name: responsePayload.name }) })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success') { 
+                    currentUser = res.data; 
+                    localStorage.setItem('kasUser', JSON.stringify(currentUser)); 
+                    initApp(); 
+                } else { 
+                    alert("Login Gagal: " + (res.message || 'Akun belum diizinkan.')); 
+                }
+            })
+            .catch(err => {
+                console.error("Login Network Error:", err);
+                alert("Gagal terhubung ke server. Cek koneksi internet Anda.");
+            });
+        } catch (error) {
+            console.error("Error decoding token:", error);
+            alert("Terjadi kesalahan format login. Coba lagi.");
+        }
     }
 
     function jwt_decode (token) {
