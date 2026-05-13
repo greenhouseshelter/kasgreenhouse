@@ -9,6 +9,22 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- TAMBAHAN CSS UNTUK FREEZE HEADER LOG -->
+    <style>
+        .log-table-container {
+            max-height: 65vh; /* Batas tinggi tabel 65% dari layar */
+            overflow-y: auto; /* Scroll vertikal jika data panjang */
+            overflow-x: auto; /* Scroll horizontal jika tabel lebar di HP */
+        }
+        .log-table-container thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #e5e7eb; /* Warna abu-abu agar teks tidak tembus saat di-scroll */
+        }
+    </style>
+    
 </head>
 <body class="bg-gray-100 text-gray-800">
 
@@ -201,15 +217,16 @@
                         <p id="logFilterInfo" class="text-xs text-gray-500 mt-2 italic">Menampilkan 100 log terakhir.</p>
                     </div>
                 
-                    <div class="bg-white rounded-lg shadow overflow-x-auto p-6">
+                    <!-- UBAHAN: menggunakan log-table-container dan bg-gray-200 di th -->
+                    <div class="bg-white rounded-lg shadow log-table-container">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-gray-200 text-sm text-gray-700">
-                                    <th class="p-3 border">Waktu</th>
-                                    <th class="p-3 border">User</th>
-                                    <th class="p-3 border">Kegiatan</th>
-                                    <th class="p-3 border">Status</th>
-                                    <th class="p-3 border">Detail Variabel</th>
+                                <tr class="text-sm text-gray-700">
+                                    <th class="p-3 border bg-gray-200">Waktu</th>
+                                    <th class="p-3 border bg-gray-200">User</th>
+                                    <th class="p-3 border bg-gray-200">Kegiatan</th>
+                                    <th class="p-3 border bg-gray-200">Status</th>
+                                    <th class="p-3 border bg-gray-200">Detail Variabel</th>
                                 </tr>
                             </thead>
                             <tbody id="logsTableBody">
@@ -449,7 +466,7 @@
         }
     }
 
-    // --- FUNGSI RESIZE IMAGE (DIRAPIKAN) ---
+    // --- FUNGSI RESIZE IMAGE ---
     function resizeImage(file, maxWidth) {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -532,7 +549,7 @@
         if (!startDate || !endDate) { alert("Pilih rentang tanggal terlebih dahulu!"); return; }
         const btnExport = document.getElementById('btnExport'); btnExport.disabled = true; btnExport.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
         try { const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'getTransactions', startDate: startDate, endDate: endDate }) }); const data = await res.json();
-            if(data.status !== 'success') { alert("Gagal mengambil data"); return; } const trans = data.data; if(trans.length === 0) { alert("Tidak ada transaksi pada rentang tanggal này."); return; }
+            if(data.status !== 'success') { alert("Gagal mengambil data"); return; } const trans = data.data; if(trans.length === 0) { alert("Tidak ada transaksi pada rentang tanggal ini."); return; }
             const wsData = [["Tanggal", "Project", "Uraian", "Masuk (Rp)", "Keluar (Rp)", "Akun"]]; trans.forEach(t => { wsData.push([new Date(t.Tanggal).toLocaleDateString('id-ID'), t.JenisProject, t.Uraian, Number(t.Masuk) || 0, Number(t.Keluar) || 0, t.Akun]); });
             const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wsData); ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]; XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
             const fileName = `Laporan_Kas_${startDate}_sd_${endDate}.xlsx`;
